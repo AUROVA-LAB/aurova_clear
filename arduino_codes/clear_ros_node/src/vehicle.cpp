@@ -13,9 +13,7 @@
 #include "../headers/configuration_vehicle_hardware.h"
 
 
-unsigned int interval = 100; //10Hz
-
-elapsedMillis timeLastComputeSteering = interval/2;
+elapsedMillis timeLastComputeSteering = SAMPLING_TIME_TEENSY/2;
 elapsedMillis timeLastComputeSpeed = 0;
 
 float* speed_measures;
@@ -162,12 +160,12 @@ int Vehicle::getOperationalMode(void)
 
 void Vehicle::updateMeasuredState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state)
 {
-  if(timeLastComputeSteering > interval)
+  if(timeLastComputeSteering > SAMPLING_TIME_TEENSY)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
 	timeLastComputeSteering = 0;
   }
-  if(timeLastComputeSpeed > interval)
+  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
@@ -252,6 +250,8 @@ void Vehicle::readRemoteControl(void)
     if (dBus_->failsafe_status == DBUS_SIGNAL_OK)
     {
       remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+      remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
+
     }
     else
     {

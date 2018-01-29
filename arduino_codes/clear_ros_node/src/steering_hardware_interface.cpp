@@ -70,7 +70,6 @@ SteeringHardwareInterface::~SteeringHardwareInterface()
 
 void SteeringHardwareInterface::steeringMotor(int direction)
 {
-	//steering_encoder_->encoderReset(11);
 	if (direction>0 && direction<256 && digitalRead(PIN_LSR) == HIGH)
 	{
 		digitalWrite(pin_ina_,HIGH);

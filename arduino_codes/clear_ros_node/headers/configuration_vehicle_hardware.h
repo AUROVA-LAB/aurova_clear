@@ -23,6 +23,8 @@ const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 #define SPEED_ZERO                     0.0
 #define STEERING_CENTERED              0.0
 
+//! Sampling time encoders using I2C
+const unsigned int  SAMPLING_TIME_TEENSY = 100; //10Hz
 
 //------------STEERING-----------//
 const float ABS_MAX_RIGHT_ANGLE_DEG = 26.0; //Experimentally measured
