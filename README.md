@@ -28,4 +28,66 @@ This topic shows the actual outputs that feed the actuators, so it gives the low
 **vehicle_status**  
 This topic is composed by four values: the _operational mode_ (emergency, ROS control, remote control and calibration), the _error_ and _warning_ codes and the _verbose level_ selected. Both error and warning codes express any error or warning occurred in any subsystem by setting to one the corresponding bit of the 16 bit integer code.   
 
-In addition, every _desired_ topic produces an _echo_ topic to check communications.  
+In addition, every _desired_ topic produces an _echo_ topic to check communications.
+
+
+### Setup instructions
+
+Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
+
+Download and install ackermann messages: https://github.com/ros-drivers/ackermann_msgs
+
+Download and install rosserial: https://github.com/ros-drivers/rosserial
+
+Clone CLEAR repo in your catkin workspace:
+
+In Eclipse:
+
+* import Projects from Git - Existing local repository
+
+* select CLEAR
+
+* import existing Eclipse project
+
+* click next
+
+* click finish
+
+* right click on the project from Project Explorer - click Properties - click Arduino (if it displays an error message keep trying until it enters the Arduino setup page)
+
+* select platform folder
+
+* select board "Arduino Genuino Mega or Mega 2560"
+
+* keep "default" in upload protocol
+
+* select processor Atmega2560
+
+* apply and close
+
+To check everything is fine just compile the project!
+
+### Web resources
+
+Ubuntu download: https://www.ubuntu.com/download/desktop
+
+ROS download: http://wiki.ros.org/kinetic/Installation/Ubuntu
+
+Coding style: http://wiki.ros.org/CppStyleGuide
+
+Template* to autoformat with Eclipse: http://wiki.ros.org/IDEs#Auto_Formatting
+
+*by the time I'm writting this, there is no kinetic version, but I've installed the Indigo version and works fine!
+
+Eclipse Oxygen: http://www.eclipse.org/downloads/packages/eclipse-ide-cc-developers/oxygen1a
+
+Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
+
+Install Doxygen: type in the terminal _sudo apt-get install doxygen_
+
+How to document the code for Doxygen: https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html
+
+Version Control with Git course: https://www.udacity.com/course/version-control-with-git--ud123
+
+GitHub & Collaboration course: https://www.udacity.com/course/github-collaboration--ud456
+
