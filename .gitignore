@@ -1,0 +1,8 @@
+#ignore user configuration files
+/Arduino_Codes/arduino_ros_node/Release/
+/Arduino_Codes/arduino_ros_node/.settings/
+/Arduino_Codes/arduino_ros_node/.project
+/Arduino_Codes/arduino_ros_node/.cproject
+/Arduino_Codes/arduino_ros_node/.ino.cpp
+/Arduino_Codes/arduino_ros_node/sloeber.ino.cpp
+
