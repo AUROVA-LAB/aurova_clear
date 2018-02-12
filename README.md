@@ -83,11 +83,10 @@ Eclipse Oxygen: http://www.eclipse.org/downloads/packages/eclipse-ide-cc-develop
 
 Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
 
-Install Doxygen: type in the terminal _sudo apt-get install doxygen_
+Install Doxygen: type in the terminal `sudo apt-get install doxygen`
 
 How to document the code for Doxygen: https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html
 
 Version Control with Git course: https://www.udacity.com/course/version-control-with-git--ud123
 
 GitHub & Collaboration course: https://www.udacity.com/course/github-collaboration--ud456
-
