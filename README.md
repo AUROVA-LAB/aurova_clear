@@ -77,7 +77,7 @@ Coding style: http://wiki.ros.org/CppStyleGuide
 
 Template* to autoformat with Eclipse: http://wiki.ros.org/IDEs#Auto_Formatting
 
-*by the time I'm writting this, there is no kinetic version, but I've installed the Indigo version and works fine!
+_*by the time I'm writting this, there is no kinetic version, but I've installed the Indigo version and works fine_ :smile:
 
 Eclipse Oxygen: http://www.eclipse.org/downloads/packages/eclipse-ide-cc-developers/oxygen1a
 
