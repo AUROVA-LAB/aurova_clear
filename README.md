@@ -1,6 +1,8 @@
 # CLEAR
 Control Logic for Easy Ackermann Robotization
 
+[full_system_architecture_overview](images/system_architecture.png)
+
 This repository contains the software and electronic designs developed for the CLEAR project.
 The aim of this project is to gather in a single module all the common features needed to integrate an Ackermann (or car-like) robot in ROS. It contains a finite state machine that switches between different operational modes, namely, Remote control, ROS control, Emergency or Calibration. Attending to the operational mode, the vehicle will accept commands from the active controller, either ROS or RC. Safety signals will override any command, setting the vehicle in Emergency mode. Within the calibration state, the steering will automatically search for the zero angle using the limit switches and the steering encoder. Besides these operational modes, the CLEAR module sees the hardware through objects of different classes that implement the hardware interface. With this approach we can change any hardware element easily, just changing the descriptor header file that contains the constant values that are hardware dependent, and readjusting the controller gains if needed. Finally the rest of the system, that is, the high level, is seen as a ROS interface, so for the micro-controller is indifferent if the commands are generated autonomously or by a human teleoperator.
 
