@@ -18,7 +18,7 @@
 #include "../headers/DJI_DBUS.h"
 #include "../headers/speed_hardware_interface.h"
 #include "../headers/steering_hardware_interface.h"
-#include "../headers/pid.h"
+#include "../headers/PID_v1.h"
 
 struct State
 {
