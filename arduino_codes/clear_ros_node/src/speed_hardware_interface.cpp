@@ -28,6 +28,8 @@ SpeedHardwareInterface::SpeedHardwareInterface(int ch1, int ch2)
 
   pinMode(this->ch1_,OUTPUT); //ch1 and ch2 like OUTPUT pins
   pinMode(this->ch2_,OUTPUT);
+
+  flag_forward_ = true;
 }
 
 SpeedHardwareInterface::~SpeedHardwareInterface()
@@ -51,6 +53,7 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //Move FORWARD
   if(voltage > 0)
   {
+	  flag_forward_ = true;
 	if(voltage != voltage_ant)
 	{
 		digital = 4096*(abs(voltage)/5.0);
@@ -63,6 +66,7 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //Move BACKWARD
   else if(voltage < 0)
   {
+	  flag_forward_ = false;
 	if(voltage != voltage_ant)
 	{
 		digital = 4096*(abs(voltage)/5.0);
@@ -75,6 +79,7 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //STOP
   else
   {
+	  flag_forward_ = true;
     digitalWrite(this->ch1_,HIGH);
     digitalWrite(this->ch2_,HIGH);
   }
@@ -91,6 +96,9 @@ float* SpeedHardwareInterface::getSpeedMeasures(void)
 	return measures_;
 }
 
-
+bool SpeedHardwareInterface::getFlagForward(void)
+{
+	return(flag_forward_);
+}
 
 

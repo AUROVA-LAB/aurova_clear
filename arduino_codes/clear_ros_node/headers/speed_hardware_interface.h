@@ -30,6 +30,8 @@ private:
 
   float measures_[3]; // vel, acc, jerk
 
+  bool flag_forward_;
+
 public:
   /*
    * Class constructor.
@@ -44,6 +46,7 @@ public:
    void actuateMotor(float voltage);
 
    float* getSpeedMeasures(void);
+   bool getFlagForward(void);
 
 };
 

@@ -61,11 +61,13 @@ Vehicle::Vehicle()
 // steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
 
   speed_controller_ = new PID(&measured_state_.speed, &speed_volts_, &desired_state_.speed, 0, 0, 0, 0);
-  speed_controller_->SetOutputLimits(0, ABS_MAX_SPEED_VOLTS);
-  speed_controller_->SetMode(AUTOMATIC);
+  speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+
 
   steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_, &desired_state_.steering_angle, 0, 0, 0, 0);
   steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
+
+  speed_controller_->SetMode(AUTOMATIC);
   steering_controller_->SetMode(AUTOMATIC);
 
 }
@@ -159,8 +161,10 @@ void Vehicle::updateFiniteStateMachine(void)
 
     case CALIBRATION:
     	if( componentsCalibration() )
-          operational_mode_ = REMOTE_CONTROL;
+    	{
+          operational_mode_ = ROS_CONTROL;
 
+    	}
     	break;
 
   }
@@ -187,7 +191,10 @@ void Vehicle::updateMeasuredState(ackermann_msgs::AckermannDriveStamped& measure
   measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
   measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
 
-  measured_state_.speed = speed_measures[0]*PULSES_PER_METER;
+  float direction = 1.0;
+  if(!speed_actuator_->getFlagForward()) direction = -1.0;
+
+  measured_state_.speed = speed_measures[0]*PULSES_PER_METER*direction;
   measured_state_.acceleration = speed_measures[1]*PULSES_PER_METER;
   measured_state_.jerk = speed_measures[2]*PULSES_PER_METER;
 
