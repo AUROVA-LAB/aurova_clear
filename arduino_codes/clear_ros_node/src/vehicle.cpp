@@ -11,6 +11,7 @@
 #include "../headers/arduino_ros_interface.h"
 #include "../headers/hardware_description_constants.h"
 #include "../headers/configuration_vehicle_hardware.h"
+#include "../headers/PID_v1.h"
 
 
 elapsedMillis timeLastComputeSteering = SAMPLING_TIME_TEENSY/2;
@@ -20,7 +21,8 @@ float* speed_measures;
 float* steering_measures;
 
 
-Vehicle::Vehicle()
+Vehicle::Vehicle() : speed_controller_(measured_state_.speed, speed_volts_, desired_state_.speed, 0, 0, 0, 0),
+		steering_controller_(measured_state_.steering_angle, steering_angle_pwm_, desired_state_.steering_angle, 0, 0, 0, 0)
 {
   operational_mode_ = CALIBRATION;
 
@@ -55,9 +57,9 @@ Vehicle::Vehicle()
   speed_actuator_ = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
   steering_actuator_ = new SteeringHardwareInterface();
 
-  speed_controller_.setPIDMaxMinValues(MAX_SPEED_CONTROLLER_OUTPUT, MIN_SPEED_CONTROLLER_OUTPUT);
-
-  steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
+// obsolete PID control class
+// speed_controller_.setPIDMaxMinValues(MAX_SPEED_CONTROLLER_OUTPUT, MIN_SPEED_CONTROLLER_OUTPUT);
+// steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
 
 }
 
@@ -81,18 +83,21 @@ void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid
   float ki = desired_pid_gains.data[1];
   float kd = desired_pid_gains.data[2];
 
-  speed_controller_.setPIDGains(kp, ki, kd);
+  //Obsolete
+  //speed_controller_.setPIDGains(kp, ki, kd);ç
+
+  speed_controller_.SetTunings(kp,ki,kd);
 }
 
 void Vehicle::getVelocityPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  float kp, ki, kd;
+  //float kp, ki, kd;
 
-  speed_controller_.getPIDGains(kp, ki, kd);
+  //speed_controller_.getPIDGains(kp, ki, kd);
 
-  current_pid_gains.data[0] = kp;
-  current_pid_gains.data[1] = ki;
-  current_pid_gains.data[2] = kd;
+  current_pid_gains.data[0] = speed_controller_.GetKp();
+  current_pid_gains.data[1] = speed_controller_.GetKi();
+  current_pid_gains.data[2] = speed_controller_.GetKd();
 }
 
 void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
@@ -212,8 +217,12 @@ void Vehicle::calculateCommandOutputs(void)
     case ROS_CONTROL:
 
       //TODO: Some PID control (using velocity, acceleration, jerk...)
-      speed_volts_ = SPEED_ZERO;
-      steering_angle_pwm_ = STEERING_CENTERED;
+
+      speed_controller_.Compute();
+      mapFloat(speed_volts_, 0, 255, 0, 4.9);
+
+      steering_controller_.Compute();
+      // will it need mapFloat???
 
       break;
 
