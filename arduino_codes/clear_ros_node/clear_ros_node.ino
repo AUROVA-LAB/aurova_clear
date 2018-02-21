@@ -67,6 +67,7 @@ void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desire
 
     if (verbose_level == MAX_VERBOSE_LEVEL)
     {
+
       //Copy to echo the incoming command
       desired_ackermann_state_echo = desired_ackermann_state; // just repeat the input to check communications
     }

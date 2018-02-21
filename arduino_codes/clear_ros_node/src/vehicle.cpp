@@ -21,8 +21,7 @@ float* speed_measures;
 float* steering_measures;
 
 
-Vehicle::Vehicle() : speed_controller_(measured_state_.speed, speed_volts_, desired_state_.speed, 0, 0, 0, 0),
-		steering_controller_(measured_state_.steering_angle, steering_angle_pwm_, desired_state_.steering_angle, 0, 0, 0, 0)
+Vehicle::Vehicle()
 {
   operational_mode_ = CALIBRATION;
 
@@ -61,6 +60,12 @@ Vehicle::Vehicle() : speed_controller_(measured_state_.speed, speed_volts_, desi
 // speed_controller_.setPIDMaxMinValues(MAX_SPEED_CONTROLLER_OUTPUT, MIN_SPEED_CONTROLLER_OUTPUT);
 // steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
 
+  speed_controller_ = new PID(&measured_state_.speed, &speed_volts_, &desired_state_.speed, 0, 0, 0, 0);
+  speed_controller_->SetOutputLimits(MIN_SPEED_CONTROLLER_OUTPUT, MAX_SPEED_CONTROLLER_OUTPUT);
+
+  steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_, &desired_state_.steering_angle, 0, 0, 0, 0);
+  steering_controller_->SetOutputLimits(MIN_STEERING_CONTROLLER_OUTPUT, MAX_STEERING_CONTROLLER_OUTPUT);
+
 }
 
 Vehicle::~Vehicle()
@@ -86,18 +91,18 @@ void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid
   //Obsolete
   //speed_controller_.setPIDGains(kp, ki, kd);ç
 
-  speed_controller_.SetTunings(kp,ki,kd);
+  speed_controller_->SetTunings(kp,ki,kd);
 }
 
 void Vehicle::getVelocityPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
+  //obsolete
   //float kp, ki, kd;
-
   //speed_controller_.getPIDGains(kp, ki, kd);
 
-  current_pid_gains.data[0] = speed_controller_.GetKp();
-  current_pid_gains.data[1] = speed_controller_.GetKi();
-  current_pid_gains.data[2] = speed_controller_.GetKd();
+  current_pid_gains.data[0] = speed_controller_->GetKp();
+  current_pid_gains.data[1] = speed_controller_->GetKi();
+  current_pid_gains.data[2] = speed_controller_->GetKd();
 }
 
 void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
@@ -106,18 +111,19 @@ void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid
   float ki = desired_pid_gains.data[1];
   float kd = desired_pid_gains.data[2];
 
-  steering_controller_.setPIDGains(kp, ki, kd);
+  steering_controller_->SetTunings(kp, ki, kd);
+
 }
 
 void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  float kp, ki, kd;
+  //obsolete
+  //float kp, ki, kd;
+  //steering_controller_.getPIDGains(kp, ki, kd);
 
-  steering_controller_.getPIDGains(kp, ki, kd);
-
-  current_pid_gains.data[0] = kp;
-  current_pid_gains.data[1] = ki;
-  current_pid_gains.data[2] = kd;
+  current_pid_gains.data[0] = steering_controller_->GetKp();
+  current_pid_gains.data[1] = steering_controller_->GetKi();
+  current_pid_gains.data[2] = steering_controller_->GetKd();
 }
 
 void Vehicle::getOperationalMode(int& current_operational_mode)
@@ -216,13 +222,9 @@ void Vehicle::calculateCommandOutputs(void)
 
     case ROS_CONTROL:
 
-      //TODO: Some PID control (using velocity, acceleration, jerk...)
+      speed_controller_->Compute();
 
-      speed_controller_.Compute();
-      mapFloat(speed_volts_, 0, 255, 0, 4.9);
-
-      steering_controller_.Compute();
-      // will it need mapFloat???
+      steering_controller_->Compute();
 
       break;
 

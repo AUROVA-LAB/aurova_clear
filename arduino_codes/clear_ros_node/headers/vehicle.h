@@ -52,8 +52,8 @@ private:
   int operational_mode_;
   int error_code_;
 
-  PID speed_controller_;
-  PID steering_controller_;
+  PIDPtr speed_controller_;
+  PIDPtr steering_controller_;
 
   float speed_volts_;
   float steering_angle_pwm_;
