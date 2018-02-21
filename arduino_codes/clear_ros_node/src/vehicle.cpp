@@ -25,15 +25,15 @@ Vehicle::Vehicle()
 {
   operational_mode_ = CALIBRATION;
 
-  measured_state_.steering_angle = 0.0;           // radians
-  measured_state_.steering_angle_velocity = 0.0;  // r/s
+  measured_state_.steering_angle = 0.0;           // deg
+  measured_state_.steering_angle_velocity = 0.0;  // deg/s
 
   measured_state_.speed = 0.0;                    // m/s
   measured_state_.acceleration = 0.0;             // m/s^2
   measured_state_.jerk = 0.0;                     // m/s^3
 
-  desired_state_.steering_angle = 0.0;            // radians
-  desired_state_.steering_angle_velocity = 0.0;   // r/s
+  desired_state_.steering_angle = 0.0;            // deg
+  desired_state_.steering_angle_velocity = 0.0;   // deg/s
 
   desired_state_.speed = 0.0;                     // m/s
   desired_state_.acceleration = 0.0;              // m/s^2
@@ -61,10 +61,12 @@ Vehicle::Vehicle()
 // steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
 
   speed_controller_ = new PID(&measured_state_.speed, &speed_volts_, &desired_state_.speed, 0, 0, 0, 0);
-  speed_controller_->SetOutputLimits(MIN_SPEED_CONTROLLER_OUTPUT, MAX_SPEED_CONTROLLER_OUTPUT);
+  speed_controller_->SetOutputLimits(0, ABS_MAX_SPEED_VOLTS);
+  speed_controller_->SetMode(AUTOMATIC);
 
   steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_, &desired_state_.steering_angle, 0, 0, 0, 0);
-  steering_controller_->SetOutputLimits(MIN_STEERING_CONTROLLER_OUTPUT, MAX_STEERING_CONTROLLER_OUTPUT);
+  steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
+  steering_controller_->SetMode(AUTOMATIC);
 
 }
 
@@ -207,6 +209,16 @@ void Vehicle::updateDesiredState(const ackermann_msgs::AckermannDriveStamped& de
   desired_state_.speed = desired_ackermann_state.drive.speed;
   desired_state_.acceleration = desired_ackermann_state.drive.acceleration;
   desired_state_.jerk = desired_ackermann_state.drive.jerk;
+}
+
+void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo)
+{
+	desired_ackermann_state_echo.drive.steering_angle = desired_state_.steering_angle;
+	desired_ackermann_state_echo.drive.steering_angle_velocity = desired_state_.steering_angle_velocity;
+
+    desired_ackermann_state_echo.drive.speed = desired_state_.speed;
+    desired_ackermann_state_echo.drive.acceleration = desired_state_.acceleration;
+    desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
 void Vehicle::calculateCommandOutputs(void)

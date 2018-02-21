@@ -65,12 +65,14 @@ void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desire
     desired_ackermann_state.header = desired_ackermann_state_msg.header;
     desired_ackermann_state.drive = desired_ackermann_state_msg.drive;
 
+    /*
     if (verbose_level == MAX_VERBOSE_LEVEL)
     {
 
       //Copy to echo the incoming command
       desired_ackermann_state_echo = desired_ackermann_state; // just repeat the input to check communications
     }
+    */
   }
   else
   {
@@ -107,12 +109,12 @@ void velPIDGainsCB(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
 
   desired_vel_pid_gains = vel_pid_gains_msg;
   desired_vel_pid_gains.data_length = 3;
-
+  /*
   if (verbose_level == MAX_VERBOSE_LEVEL)
   {
     vel_pid_gains_echo = desired_vel_pid_gains;
   }
-
+  */
 }
 ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_vel_pid_gains", &velPIDGainsCB);
 
@@ -134,12 +136,12 @@ void steeringPIDGainsCB(const std_msgs::Float32MultiArray& ste_pid_gains_msg)
 
   desired_ste_pid_gains = ste_pid_gains_msg;
   desired_ste_pid_gains.data_length = 3;
-
+  /*
   if (verbose_level == MAX_VERBOSE_LEVEL)
   {
     ste_pid_gains_echo = desired_ste_pid_gains;
   }
-
+  */
 }
 ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desired_steering_pid_gains",
                                                                            &steeringPIDGainsCB);
@@ -300,8 +302,13 @@ void sendOutputsToROS(void)
   //! Publishing Arduino inner information to ease debug and monitoring
   if (verbose_level == MAX_VERBOSE_LEVEL)
   {
+	AckermannVehicle.getDesiredState(desired_ackermann_state_echo);
     required_ackermann_publisher.publish(&desired_ackermann_state_echo);
+
+    AckermannVehicle.getVelocityPIDGains(vel_pid_gains_echo);
     required_vel_pid_gains_publisher.publish(&vel_pid_gains_echo);
+
+    AckermannVehicle.getSteeringPIDGains(ste_pid_gains_echo);
     required_steering_pid_gains_publisher.publish(&ste_pid_gains_echo);
   }
   if (verbose_level >= MIN_VERBOSE_LEVEL)

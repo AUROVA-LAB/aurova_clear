@@ -106,6 +106,11 @@ public:
   void updateDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
 
   /*!
+   * Returns the desired state for debugging
+   */
+  void getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo);
+
+  /*!
    * Maps variables in the ROS messages to the inner PID gains variables
    * @param desired_vel_pid_gains
    * @param desired_ste_pid_gains
