@@ -56,6 +56,9 @@ Vehicle::Vehicle()
   speed_actuator_ = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
   steering_actuator_ = new SteeringHardwareInterface();
 
+  speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
+  steering_actuator_->steeringMotor(0);
+
 // obsolete PID control class
 // speed_controller_.setPIDMaxMinValues(MAX_SPEED_CONTROLLER_OUTPUT, MIN_SPEED_CONTROLLER_OUTPUT);
 // steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
@@ -162,8 +165,7 @@ void Vehicle::updateFiniteStateMachine(void)
     case CALIBRATION:
     	if( componentsCalibration() )
     	{
-          operational_mode_ = ROS_CONTROL;
-
+          operational_mode_ = REMOTE_CONTROL;
     	}
     	break;
 
