@@ -10,7 +10,11 @@
 #include "../headers/hardware_description_constants.h"
 #include "../headers/configuration_vehicle_hardware.h"
 
+
 int digital = 0;
+
+elapsedMillis refreshDac = 0;
+int interval = SAMPLING_TIME_TEENSY*4.25;
 
 float voltage_ant = ABS_MAX_SPEED_VOLTS+1;
 
@@ -53,11 +57,12 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //Move FORWARD
   if(voltage > 0)
   {
-	  flag_forward_ = true;
-	if(voltage != voltage_ant)
+	flag_forward_ = true;
+	if(voltage != voltage_ant or refreshDac > interval)
 	{
 		digital = 4096*(abs(voltage)/5.0);
 		dac_.setVoltage(digital,false);
+		refreshDac = 0;
 	}
 
     digitalWrite(this->ch1_,LOW);
@@ -66,11 +71,12 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //Move BACKWARD
   else if(voltage < 0)
   {
-	  flag_forward_ = false;
-	if(voltage != voltage_ant)
+	flag_forward_ = false;
+	if(voltage != voltage_ant  or refreshDac > interval)
 	{
 		digital = 4096*(abs(voltage)/5.0);
 		dac_.setVoltage(digital,false);
+		refreshDac = 0;
 	}
 
     digitalWrite(this->ch1_,HIGH);
@@ -79,7 +85,12 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
   //STOP
   else
   {
-	  flag_forward_ = true;
+	flag_forward_ = true;
+	if(voltage != voltage_ant or refreshDac > interval)
+	{
+		dac_.setVoltage(0,false);
+		refreshDac = 0;
+	}
     digitalWrite(this->ch1_,HIGH);
     digitalWrite(this->ch2_,HIGH);
   }

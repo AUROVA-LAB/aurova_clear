@@ -23,7 +23,7 @@ float* steering_measures;
 
 Vehicle::Vehicle()
 {
-  operational_mode_ = CALIBRATION;
+  operational_mode_ = ROS_CONTROL;
 
   measured_state_.steering_angle = 0.0;           // deg
   measured_state_.steering_angle_velocity = 0.0;  // deg/s
@@ -58,10 +58,6 @@ Vehicle::Vehicle()
 
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
-
-// obsolete PID control class
-// speed_controller_.setPIDMaxMinValues(MAX_SPEED_CONTROLLER_OUTPUT, MIN_SPEED_CONTROLLER_OUTPUT);
-// steering_controller_.setPIDMaxMinValues(MAX_STEERING_CONTROLLER_OUTPUT, MIN_STEERING_CONTROLLER_OUTPUT);
 
   speed_controller_ = new PID(&measured_state_.speed, &speed_volts_, &desired_state_.speed, 0, 0, 0, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
@@ -284,6 +280,13 @@ void Vehicle::readRemoteControl(void)
       remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
       remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
 
+      if(dBus_->channels[5] == 1541)
+    	  operational_mode_ = ROS_CONTROL;
+      else
+    	  operational_mode_ = REMOTE_CONTROL;
+
+
+      Serial.println(dBus_->channels[5]);
     }
     else
     {
