@@ -66,6 +66,8 @@ private:
   SpeedHardwareInterfacePtr speed_actuator_;
   SteeringHardwareInterfacePtr steering_actuator_;
 
+  byte led_rgb_value_[3];
+
 
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
   {

@@ -338,7 +338,8 @@ void loop()
 
   AckermannVehicle.readOnBoardUserInterface();
 
-  AckermannVehicle.readRemoteControl();
+  if(AckermannVehicle.getOperationalMode() != CALIBRATION)
+	  AckermannVehicle.readRemoteControl();
 
   AckermannVehicle.updateFiniteStateMachine();
 

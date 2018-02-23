@@ -7,6 +7,7 @@
 
 #include <elapsedMillis.h>
 
+//#include "/opt/ros/kinetic/include/ros/master.h"
 #include "../headers/vehicle.h"
 #include "../headers/arduino_ros_interface.h"
 #include "../headers/hardware_description_constants.h"
@@ -23,7 +24,7 @@ float* steering_measures;
 
 Vehicle::Vehicle()
 {
-  operational_mode_ = ROS_CONTROL;
+  operational_mode_ = CALIBRATION;
 
   measured_state_.steering_angle = 0.0;           // deg
   measured_state_.steering_angle_velocity = 0.0;  // deg/s
@@ -72,6 +73,17 @@ Vehicle::Vehicle()
 
   speed_controller_->SetMode(AUTOMATIC); // Activate PID controllers
   steering_controller_->SetMode(AUTOMATIC);
+
+  led_rgb_value_[0] = 0;
+  led_rgb_value_[1] = 0;
+  led_rgb_value_[2] = 0;
+
+  pinMode(LED_R,OUTPUT);
+  pinMode(LED_G,OUTPUT);
+  pinMode(LED_B,OUTPUT);
+
+  pinMode(HORN,OUTPUT);
+  digitalWrite(HORN,HIGH);
 
 }
 
@@ -143,7 +155,9 @@ void Vehicle::updateFiniteStateMachine(void)
   switch ( operational_mode_ )
   {
     case RESET:
-
+	  led_rgb_value_[0] = 0;
+	  led_rgb_value_[1] = 0;
+	  led_rgb_value_[2] = 0;
       if ( desired_steering_state_reached_ )
       {
         operational_mode_ = REMOTE_CONTROL;
@@ -151,25 +165,40 @@ void Vehicle::updateFiniteStateMachine(void)
       break;
 
     case EMERGENCY_STOP:
-
+  	  led_rgb_value_[0] = 255;
+  	  led_rgb_value_[1] = 0;
+  	  led_rgb_value_[2] = 0;
       break;
 
     case REMOTE_CONTROL:
-
+  	  led_rgb_value_[0] = 0;
+  	  led_rgb_value_[1] = 255;
+  	  led_rgb_value_[2] = 0;
       break;
 
     case ROS_CONTROL:
-
+    	if(!ros::master::check()) operational_mode_ = EMERGENCY_STOP;
+  	  led_rgb_value_[0] = 0;
+  	  led_rgb_value_[1] = 0;
+  	  led_rgb_value_[2] = 255;
       break;
 
     case CALIBRATION:
-    	if( componentsCalibration() )
-    	{
-          operational_mode_ = REMOTE_CONTROL;
-    	}
-    	break;
+  	  led_rgb_value_[0] = 255;
+  	  led_rgb_value_[1] = 255;
+  	  led_rgb_value_[2] = 0;
+	  if( componentsCalibration() )
+	  {
+	      operational_mode_ = REMOTE_CONTROL;
+	  }
+	  break;
 
   }
+
+
+  analogWrite(LED_R, led_rgb_value_[0]);
+  analogWrite(LED_G, led_rgb_value_[1]);
+  analogWrite(LED_B, led_rgb_value_[2]);
 }
 
 int Vehicle::getOperationalMode(void)
@@ -286,6 +315,7 @@ void Vehicle::readRemoteControl(void)
 		  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 		  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
 
+
 		  if(dBus_->channels[6] != 1024)
 			  operational_mode_ = EMERGENCY_STOP;
 		  else if(dBus_->channels[5] == 1541)
@@ -304,6 +334,13 @@ void Vehicle::readRemoteControl(void)
         	  operational_mode_ = RESET;
           }
       }
+
+      if(dBus_->channels[4] == 1684)
+    	  digitalWrite(HORN,LOW);
+      else
+    	  digitalWrite(HORN,HIGH);
+
+      //Serial.println(dBus_->channels[4]);
 
     }
     else

@@ -30,6 +30,10 @@
 
 //Hardware
 #define EMERGENCY_SWITCH				29
+#define HORN							38
+#define LED_R							44
+#define LED_G							45
+#define LED_B							46
 
 
 #endif /* HEADERS_HARDWARE_DESCRIPTION_CONSTANTS_H_ */
