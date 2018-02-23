@@ -50,6 +50,10 @@ Vehicle::Vehicle()
   speed_volts_ = 0.0;
   steering_angle_pwm_ = 0.0;
 
+  speed_volts_pid_ = 0.0;
+  steering_angle_pwm_pid_ = 0.0;
+
+
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
 
@@ -59,14 +63,14 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&measured_state_.speed, &speed_volts_, &desired_state_.speed, 0, 0, 0, 0);
+  speed_controller_ = new PID(&measured_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0, 0, 0, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
 
-  steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_, &desired_state_.steering_angle, 0, 0, 0, 0);
+  steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0, 0, 0, 0);
   steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
 
-  speed_controller_->SetMode(AUTOMATIC);
+  speed_controller_->SetMode(AUTOMATIC); // Activate PID controllers
   steering_controller_->SetMode(AUTOMATIC);
 
 }
@@ -232,8 +236,8 @@ void Vehicle::calculateCommandOutputs(void)
   {
     case REMOTE_CONTROL:
 
-      speed_volts_ = remote_control_.speed_volts;
-      steering_angle_pwm_ = remote_control_.steering_angle_pwm;
+      speed_volts_pid_ = remote_control_.speed_volts;
+      steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
 
       break;
 
@@ -277,28 +281,44 @@ void Vehicle::readRemoteControl(void)
      */
     if (dBus_->failsafe_status == DBUS_SIGNAL_OK)
     {
-      remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
-      remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
+      if(operational_mode_ != EMERGENCY_STOP)
+      {
+		  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+		  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
 
-      if(dBus_->channels[5] == 1541)
-    	  operational_mode_ = ROS_CONTROL;
+		  if(dBus_->channels[6] != 1024)
+			  operational_mode_ = EMERGENCY_STOP;
+		  else if(dBus_->channels[5] == 1541)
+			  operational_mode_ = ROS_CONTROL;
+		  else
+			  operational_mode_ = REMOTE_CONTROL;
+      }
+
       else
-    	  operational_mode_ = REMOTE_CONTROL;
+      {
+          remote_control_.speed_volts = 0.0;
+          remote_control_.steering_angle_pwm = 0.0;
 
+          if(dBus_->channels[6] == 1024 and dBus_->channels[4] == 364 and digitalRead(EMERGENCY_SWITCH) == HIGH)
+          {
+        	  operational_mode_ = RESET;
+          }
+      }
 
-      Serial.println(dBus_->channels[5]);
     }
     else
     {
-      remote_control_.speed_volts = 0.0;
-      remote_control_.steering_angle_pwm = 0.0;
+		operational_mode_ = EMERGENCY_STOP;
+		remote_control_.speed_volts = 0.0;
+		remote_control_.steering_angle_pwm = 0.0;
     }
   }
 }
 
 void Vehicle::readOnBoardUserInterface(void)
 {
-
+	if(digitalRead(EMERGENCY_SWITCH) == LOW)
+		operational_mode_ = EMERGENCY_STOP;
 }
 
 void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
@@ -306,18 +326,28 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
   //bool ste_error = false;
   //bool speed_error = false;
 
-  if ( operational_mode_ != EMERGENCY_STOP && operational_mode_ != CALIBRATION)
+  if(operational_mode_ == EMERGENCY_STOP)
   {
-    speed_actuator_->actuateMotor(speed_volts_);
-    steering_actuator_->steeringMotor(steering_angle_pwm_);
-    //ste_error = steering_actuator_->steering_motor(steering_angle_pwm_);
-
-    //if(ste_error) error_code_ = STEERING_CONTROL_ERROR;
-
-    //Passing the applied values to communicate them to ROS
-    speed_volts_and_steering_pwm_being_applicated.data[0] = speed_volts_;
-    speed_volts_and_steering_pwm_being_applicated.data[1] = steering_angle_pwm_;
+	  speed_volts_ = 0;
+	  steering_angle_pwm_ = 0;
   }
+
+  else if(operational_mode_)
+  {
+	  speed_volts_ = speed_volts_pid_;
+	  steering_angle_pwm_ = steering_angle_pwm_pid_;
+  }
+
+  speed_actuator_->actuateMotor(speed_volts_);
+  steering_actuator_->steeringMotor(steering_angle_pwm_);
+  //ste_error = steering_actuator_->steering_motor(steering_angle_pwm_);
+
+  //if(ste_error) error_code_ = STEERING_CONTROL_ERROR;
+
+  //Passing the applied values to communicate them to ROS
+  speed_volts_and_steering_pwm_being_applicated.data[0] = speed_volts_;
+  speed_volts_and_steering_pwm_being_applicated.data[1] = steering_angle_pwm_;
+
 }
 
 void Vehicle::updatePIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,

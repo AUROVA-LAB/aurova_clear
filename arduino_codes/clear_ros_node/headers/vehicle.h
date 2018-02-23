@@ -58,6 +58,9 @@ private:
   float speed_volts_;
   float steering_angle_pwm_;
 
+  float speed_volts_pid_;
+  float steering_angle_pwm_pid_;
+
   DJI_DBUSPtr dBus_;
 
   SpeedHardwareInterfacePtr speed_actuator_;

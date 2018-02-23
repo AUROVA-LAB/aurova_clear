@@ -1,6 +1,6 @@
 #ignore user configuration files
 /arduino_codes/clear_ros_node/Release
-/arduino_codes/clear_ros_node/.settings/
+/arduino_codes/clear_ros_node/.settings
 /arduino_codes/clear_ros_node/.project
 /arduino_codes/clear_ros_node/.cproject
 /arduino_codes/clear_ros_node/.ino.cpp

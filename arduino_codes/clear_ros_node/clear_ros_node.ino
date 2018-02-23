@@ -344,7 +344,8 @@ void loop()
 
   AckermannVehicle.calculateCommandOutputs();
 
-  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
+  if(AckermannVehicle.getOperationalMode() != CALIBRATION)
+	  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
 
   if (communicate_with_ROS) sendOutputsToROS();
 }
