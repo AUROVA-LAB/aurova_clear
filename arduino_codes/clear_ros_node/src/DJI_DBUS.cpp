@@ -9,6 +9,7 @@
   Refer to naza_dbus_decoder_wiring.jpg diagram for proper connection
   
   Modified by F.Cadelas to simplify funcionality to channel decoding
+  Modified by S. Cova to
 */
 #include "../headers/DJI_DBUS.h"
 
@@ -91,13 +92,7 @@ void DJI_DBUS::UpdateChannels(void) {
 */
 
   // Failsafe
-  failsafe_status = DBUS_SIGNAL_OK;
-  if (sbusData[23] & (1<<2)) {
-    failsafe_status = DBUS_SIGNAL_FAILSAFE;
-  }
-  if (sbusData[23] & (1<<3)) {
-    failsafe_status = DBUS_SIGNAL_LOST;
-  }
+  UpdateSignalState();
 
 }
 void DJI_DBUS::FeedLine(void){
@@ -138,3 +133,14 @@ void DJI_DBUS::FeedLine(void){
   }
 }
 
+void DJI_DBUS::UpdateSignalState(void)
+{
+	  // Failsafe
+	  failsafe_status = DBUS_SIGNAL_OK;
+	  if (sbusData[23] & (1<<2)) {
+	    failsafe_status = DBUS_SIGNAL_FAILSAFE;
+	  }
+	  if (sbusData[23] & (1<<3)) {
+	    failsafe_status = DBUS_SIGNAL_LOST;
+	  }
+}

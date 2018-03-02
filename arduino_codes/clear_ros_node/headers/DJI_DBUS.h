@@ -39,8 +39,9 @@ class DJI_DBUS
 		void begin();
 		int16_t Channel(uint8_t ch);
 		uint8_t DigiChannel(uint8_t ch);
-    void UpdateChannels(void);
+		void UpdateChannels(void);
 		void FeedLine(void);
+		void UpdateSignalState(void);
     
 	private:
     HardwareSerial & _serial;
