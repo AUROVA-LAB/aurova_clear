@@ -15,14 +15,8 @@
 
 //----ENCODER 1 STEERING----//
 float vel1   = 0.0;
-/*float acel1   = 0.0;
-float jerk1  = 0.0;
-float vel_prev1   = 0.0;
-float acel_prev1   = 0.0;*/
 
-//Pulses;
-int16_t   pulses_to_refresh1 = 1000;
-int16_t delta_pulses1 = 0;
+//Pulses
 volatile int32_t pulses1 = 0;
 volatile int32_t pulses_prev1 = 0;
 
@@ -31,8 +25,6 @@ uint32_t dt1 = 0;
 float dt_f1 = 0;
 uint32_t currTime1 = 0;
 uint32_t prevTime1 = 0;
-elapsedMillis timeLastCompute1;
-const uint16_t interval1 = 500; //ms
 
 //Interrupts
 void encoder_count1(void)
@@ -48,31 +40,11 @@ void ComputeState1()
   currTime1 = millis();
   dt1 = (float)(currTime1-prevTime1);
   dt_f1 = dt1/1000.0;
-  if(pulses1 - pulses_prev1 != 0)
-     prevTime1 = currTime1; 
-  
-  /*
-   * Es mejor que la teensy te devuelva los valores RAW pulsos/s 
-   * ya que no tiene idea de los parametros del encoder ni del motor
-   */
+
   vel1  = (pulses1-pulses_prev1) / dt_f1;
-  /*acel1 = (vel1-vel_prev1) / dt_f1;
-  jerk1 = (acel1-acel_prev1) / dt_f1;*/
 
   pulses_prev1 = pulses1;
-  /*vel_prev1 = vel1;
-  acel_prev1   = acel1;*/
-
-  /*Serial.print("Steering: ");
-  Serial.print(dt_f1);
-  Serial.print(",");
-  Serial.print(pulses1);
-  Serial.print(",");
-  Serial.println(vel1);
-  Serial.print(",");
-  Serial.print(acel1);
-  Serial.print(",");
-  Serial.println(jerk1);*/
+  prevTime1 = currTime1; 
 }
 
 //----ENCODER 2 SPEED----//
@@ -83,8 +55,6 @@ float vel_prev2   = 0.0;
 float acel_prev2   = 0.0;
 
 //Pulses;
-int16_t   pulses_to_refresh2 = 2;
-int16_t delta_pulses2 = 0;
 volatile int32_t pulses2 = 0;
 volatile int32_t pulses_prev2 = 0;
 
@@ -93,8 +63,6 @@ uint32_t dt2 = 0;
 float dt_f2 = 0;
 uint32_t currTime2 = 0;
 uint32_t prevTime2 = 0;
-elapsedMillis timeLastCompute2;
-const uint16_t interval2 = 1000; //ms
 
 //Interrupts
 void encoder_count2(void) {pulses2 += 1;}
@@ -104,13 +72,7 @@ void ComputeState2()
   currTime2 = millis();
   dt2 = (float)(currTime2-prevTime2);
   dt_f2 = dt2/1000.0;
-  if(pulses2 - pulses_prev2 != 0)
-     prevTime2 = currTime2; 
   
-  /*
-   * Es mejor que la teensy te devuelva los valores RAW pulsos/s 
-   * ya que no tiene idea de los parametros del encoder ni del motor
-   */
   vel2  = (pulses2-pulses_prev2) / dt_f2;
   acel2 = (vel2-vel_prev2) / dt_f2;
   jerk2 = (acel2-acel_prev2) / dt_f2;
@@ -118,17 +80,7 @@ void ComputeState2()
   pulses_prev2 = pulses2;
   vel_prev2 = vel2;
   acel_prev2   = acel2;
-
-  /*Serial.print("Speed: ");
-  Serial.print(dt_f2);
-  Serial.print(",");
-  //Serial.print(pulses2);
-  //Serial.print(",");
-  Serial.print(vel2);
-  Serial.print(",");
-  Serial.print(acel2);
-  Serial.print(",");
-  Serial.println(jerk2);*/
+  prevTime2 = currTime2;
 }
 
 
@@ -154,7 +106,7 @@ void I2C_eventRequest(void)
     //Encoder 1 Steering
    case 0:
       ComputeState1();
-      *pBuffer = (float)pulses_prev1; //Así no tengo que desactivar las interrupciones
+      *pBuffer = (float)pulses_prev1;
       Wire.write(I2C_sendBuffer, I2C_sizeFloat);
       break;
   case 1:
@@ -218,26 +170,9 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(PIN_EN_A), encoder_count1, RISING);
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), encoder_count2, CHANGE);
   
-  currTime1 = millis();
-  currTime2 = currTime1;
 }
 
 void loop() 
-{
- /* delta_pulses1 = pulses1 - pulses_prev1;
-  delta_pulses2 = pulses2 - pulses_prev2;
-  
-  if(delta_pulses1 >= pulses_to_refresh1 or timeLastCompute1 > interval1)
-  {
-    ComputeState1();
-    timeLastCompute1 = 0;    
-  }
-  
-  if(delta_pulses2 >= pulses_to_refresh2 or timeLastCompute2 > interval2)
-  {
-    ComputeState2();
-    timeLastCompute2 = 0;    
-  }*/        
-}
+{}
 
 // END

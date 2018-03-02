@@ -153,6 +153,7 @@ void Vehicle::getOperationalMode(int& current_operational_mode)
 void Vehicle::updateFiniteStateMachine(void)
 {
   switch ( operational_mode_ )
+
   {
     case RESET:
 	  led_rgb_value_[0] = 0;
@@ -303,6 +304,7 @@ void Vehicle::readRemoteControl(void)
   if(dBus_->failsafe_status == DBUS_SIGNAL_OK)
   {
 	  if (dBus_->toChannels == 1)
+
 	  {
 		dBus_->UpdateChannels();
 		dBus_->toChannels = 0;
