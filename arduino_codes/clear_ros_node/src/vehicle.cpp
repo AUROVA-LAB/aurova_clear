@@ -18,6 +18,8 @@
 elapsedMillis timeLastComputeSteering = SAMPLING_TIME_TEENSY/2;
 elapsedMillis timeLastComputeSpeed = 0;
 
+elapsedMillis timeBeforeBrake = 0;
+
 float* speed_measures;
 float* steering_measures;
 
@@ -85,6 +87,12 @@ Vehicle::Vehicle()
   pinMode(HORN,OUTPUT);
   digitalWrite(HORN,HIGH);
 
+  pinMode(ENABLE_MOTORS,OUTPUT);
+  digitalWrite(ENABLE_MOTORS,LOW);
+
+  pinMode(BRAKE,OUTPUT);
+  digitalWrite(BRAKE,HIGH);
+
 }
 
 Vehicle::~Vehicle()
@@ -107,18 +115,11 @@ void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid
   float ki = desired_pid_gains.data[1];
   float kd = desired_pid_gains.data[2];
 
-  //Obsolete
-  //speed_controller_.setPIDGains(kp, ki, kd);ç
-
   speed_controller_->SetTunings(kp,ki,kd);
 }
 
 void Vehicle::getVelocityPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  //obsolete
-  //float kp, ki, kd;
-  //speed_controller_.getPIDGains(kp, ki, kd);
-
   current_pid_gains.data[0] = speed_controller_->GetKp();
   current_pid_gains.data[1] = speed_controller_->GetKi();
   current_pid_gains.data[2] = speed_controller_->GetKd();
@@ -136,10 +137,6 @@ void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid
 
 void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  //obsolete
-  //float kp, ki, kd;
-  //steering_controller_.getPIDGains(kp, ki, kd);
-
   current_pid_gains.data[0] = steering_controller_->GetKp();
   current_pid_gains.data[1] = steering_controller_->GetKi();
   current_pid_gains.data[2] = steering_controller_->GetKd();
@@ -156,7 +153,10 @@ void Vehicle::updateFiniteStateMachine(void)
 
   {
     case RESET:
-	  led_rgb_value_[0] = 0;
+
+      digitalWrite(ENABLE_MOTORS,LOW);
+
+      led_rgb_value_[0] = 0;
 	  led_rgb_value_[1] = 0;
 	  led_rgb_value_[2] = 0;
       if ( desired_steering_state_reached_ )
@@ -166,7 +166,11 @@ void Vehicle::updateFiniteStateMachine(void)
       break;
 
     case EMERGENCY_STOP:
-  	  led_rgb_value_[0] = 255;
+
+      digitalWrite(ENABLE_MOTORS,HIGH);
+      digitalWrite(BRAKE,HIGH);
+
+      led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 0;
   	  led_rgb_value_[2] = 0;
       break;
@@ -373,7 +377,14 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
   else if(operational_mode_)
   {
 	  speed_volts_ = speed_volts_pid_;
+	  if(fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE) digitalWrite(BRAKE,LOW);
 	  steering_angle_pwm_ = steering_angle_pwm_pid_;
+  }
+
+  if(timeBeforeBrake > MAX_TIME_ZERO_VOLTS_TO_BRAKE)
+  {
+	  digitalWrite(BRAKE, HIGH);
+	  timeBeforeBrake = 0;
   }
 
   speed_actuator_->actuateMotor(speed_volts_);

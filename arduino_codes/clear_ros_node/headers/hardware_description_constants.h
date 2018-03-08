@@ -10,7 +10,7 @@
 
 //! I2C COMUNICATIONS SLAVES
 #define I2C_SLAVEADDRTEENSY 		   0x33 // Slave addres for Teensy
-#define I2C_SLAVEADDRADC 			   0x62 // Slave addres for Teensy
+#define I2C_SLAVEADDRADC 			   0x62 // Slave addres for DAC
 
 //! Arduino Pins
 
@@ -34,6 +34,8 @@
 #define LED_R							44
 #define LED_G							45
 #define LED_B							46
+#define ENABLE_MOTORS					41 // high = enabled
+#define BRAKE							39 // low = braking;
 
 
 #endif /* HEADERS_HARDWARE_DESCRIPTION_CONSTANTS_H_ */
