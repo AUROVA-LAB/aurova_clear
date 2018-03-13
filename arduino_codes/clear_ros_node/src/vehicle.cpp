@@ -28,6 +28,13 @@ Vehicle::Vehicle()
 {
   operational_mode_ = CALIBRATION;
 
+  estimated_state_.steering_angle = 0.0;           // deg
+  estimated_state_.steering_angle_velocity = 0.0;  // deg/s
+
+  estimated_state_.speed = 0.0;                    // m/s
+  estimated_state_.acceleration = 0.0;             // m/s^2
+  estimated_state_.jerk = 0.0;                     // m/s^3
+
   measured_state_.steering_angle = 0.0;           // deg
   measured_state_.steering_angle_velocity = 0.0;  // deg/s
 
@@ -48,6 +55,13 @@ Vehicle::Vehicle()
   remote_control_.speed_volts = 0.0;
   remote_control_.steering_angle_pwm = 0.0;
 
+  remote_control_.desired_state.steering_angle = 0.0;            // deg
+  remote_control_.desired_state.steering_angle_velocity = 0.0;   // deg/s
+
+  remote_control_.desired_state.speed = 0.0;                     // m/s
+  remote_control_.desired_state.acceleration = 0.0;              // m/s^2
+  remote_control_.desired_state.jerk = 0.0;                      // m/s^3
+
   error_code_ = NO_ERROR;
 
   speed_volts_ = 0.0;
@@ -66,11 +80,11 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&measured_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0, 0, 0, 0);
+  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0.0, 8.0, 0.0, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
 
-  steering_controller_ = new PID(&measured_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0, 0, 0, 0);
+  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0.0, 0.0, 0.0, 0);
   steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
 
   speed_controller_->SetMode(AUTOMATIC); // Activate PID controllers
@@ -200,7 +214,6 @@ void Vehicle::updateFiniteStateMachine(void)
 
   }
 
-
   analogWrite(LED_R, led_rgb_value_[0]);
   analogWrite(LED_G, led_rgb_value_[1]);
   analogWrite(LED_B, led_rgb_value_[2]);
@@ -211,40 +224,48 @@ int Vehicle::getOperationalMode(void)
   return (operational_mode_);
 }
 
-void Vehicle::updateMeasuredState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state)
+void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state)
 {
   if(timeLastComputeSteering > SAMPLING_TIME_TEENSY)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
 	timeLastComputeSteering = 0;
+
+	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
+	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
   }
   if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
+
+	float direction = 1.0;
+	if(!speed_actuator_->getFlagForward()) direction = -1.0;
+
+	measured_state_.speed = speed_measures[0]*METERS_PER_PULSE*direction;
+	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE;
+	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
   }
 
-  measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
-  measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
+  estimated_state_.speed = measured_state_.speed;
+  estimated_state_.acceleration = measured_state_.acceleration;
+  estimated_state_.jerk = measured_state_.jerk;
 
-  float direction = 1.0;
-  if(!speed_actuator_->getFlagForward()) direction = -1.0;
+  estimated_state_.steering_angle = measured_state_.steering_angle;
+  estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
-  measured_state_.speed = speed_measures[0]*PULSES_PER_METER*direction;
-  measured_state_.acceleration = speed_measures[1]*PULSES_PER_METER;
-  measured_state_.jerk = speed_measures[2]*PULSES_PER_METER;
 
-  measured_ackermann_state.drive.speed = measured_state_.speed;
-  measured_ackermann_state.drive.acceleration = measured_state_.acceleration;
-  measured_ackermann_state.drive.jerk = measured_state_.jerk;
+  estimated_ackermann_state.drive.speed = measured_state_.speed;
+  estimated_ackermann_state.drive.acceleration = measured_state_.acceleration;
+  estimated_ackermann_state.drive.jerk = measured_state_.jerk;
 
-  measured_ackermann_state.drive.steering_angle = measured_state_.steering_angle;
-  measured_ackermann_state.drive.steering_angle_velocity = measured_state_.steering_angle_velocity;
+  estimated_ackermann_state.drive.steering_angle = measured_state_.steering_angle;
+  estimated_ackermann_state.drive.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
 
 }
 
-void Vehicle::updateDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
+void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
 {
   desired_state_.steering_angle = desired_ackermann_state.drive.steering_angle;
   desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
@@ -269,10 +290,16 @@ void Vehicle::calculateCommandOutputs(void)
   switch (operational_mode_)
   {
     case REMOTE_CONTROL:
-
-      speed_volts_pid_ = remote_control_.speed_volts;
-      steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
-
+		  if(!REMOTE_CONTROL_USE_PID)
+		  {
+		      speed_volts_pid_ = remote_control_.speed_volts;
+		      steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
+		  }else{
+			  desired_state_.speed = remote_control_.desired_state.speed;
+			  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
+		      speed_controller_->Compute();
+		      steering_controller_->Compute();
+		  }
       break;
 
     case ROS_CONTROL:
@@ -315,8 +342,14 @@ void Vehicle::readRemoteControl(void)
 
 		  if(operational_mode_ != EMERGENCY_STOP)
 		  {
-			  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
-			  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
+			  if(!REMOTE_CONTROL_USE_PID)
+			  {
+				  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+				  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
+			  }else{
+				  remote_control_.desired_state.speed = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
+				  remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
+			  }
 
 
 			  if(dBus_->channels[6] != 1024)
@@ -329,8 +362,14 @@ void Vehicle::readRemoteControl(void)
 
 		  else
 		  {
-			  remote_control_.speed_volts = 0.0;
-			  remote_control_.steering_angle_pwm = 0.0;
+			  if(!REMOTE_CONTROL_USE_PID)
+			  {
+				  remote_control_.speed_volts = 0.0;
+				  remote_control_.steering_angle_pwm = 0.0;
+			  }else{
+				  remote_control_.desired_state.speed = 0.0;
+				  remote_control_.desired_state.steering_angle = 0.0;
+			  }
 
 			  if(dBus_->channels[6] == 1024 and dBus_->channels[4] == 364 and digitalRead(EMERGENCY_SWITCH) == HIGH)
 			  {
@@ -351,8 +390,14 @@ void Vehicle::readRemoteControl(void)
   else
   {
 	operational_mode_ = EMERGENCY_STOP;
-	remote_control_.speed_volts = 0.0;
-	remote_control_.steering_angle_pwm = 0.0;
+	if(!REMOTE_CONTROL_USE_PID)
+	{
+	  remote_control_.speed_volts = 0.0;
+	  remote_control_.steering_angle_pwm = 0.0;
+	}else{
+	  remote_control_.desired_state.speed = 0.0;
+	  remote_control_.desired_state.steering_angle = 0.0;
+	}
   }
 
 }

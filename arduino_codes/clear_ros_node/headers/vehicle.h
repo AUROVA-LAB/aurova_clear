@@ -33,6 +33,8 @@ struct RemoteControl
 {
   float speed_volts;
   float steering_angle_pwm;
+
+  State desired_state;
 };
 
 class Vehicle;
@@ -41,6 +43,7 @@ typedef Vehicle* VehiclePtr;
 class Vehicle
 {
 private:
+  State estimated_state_;
   State measured_state_;
   State desired_state_;
 
@@ -84,7 +87,7 @@ public:
    * and calculates all the state variables: speed, acceleration,
    * jerk, steering angle and steering angle velocity
    */
-  void updateMeasuredState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state);
+  void updateState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state);
 
   /*!
    * Reads the buttons and switches wired in the own vehicle, that affects
@@ -108,7 +111,7 @@ public:
    * Jerk, Steering Angle and Steering Angle Velocity
    * @param desired_ackermann_state The state variables in ROS message format
    */
-  void updateDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
+  void updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
 
   /*!
    * Returns the desired state for debugging

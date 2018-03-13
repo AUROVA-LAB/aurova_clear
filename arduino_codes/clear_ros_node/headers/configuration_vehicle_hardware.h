@@ -23,14 +23,18 @@ const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 #define SPEED_ZERO                     0.0
 #define STEERING_CENTERED              0.0
 
+const float IMPOSSIBLE_PID_GAIN = -1.0;
+const bool  REMOTE_CONTROL_USE_PID = true;
+
 //! Sampling time encoders using I2C
 const unsigned int  SAMPLING_TIME_TEENSY = 100; //10Hz
 
 //------------STEERING-----------//
 const float ABS_MAX_RIGHT_ANGLE_DEG = 26.0; //Experimentally measured
 const float ABS_MAX_LEFT_ANGLE_DEG = 24.0; //Experimentally measured
+const float ABS_MAX_STEERING_ANGLE_DEG = 20.0; // To avoid the mechanical limits
 
-const float ABS_MAX_STEERING_ANGLE_DEG = 50.0; //ABS_MAX_RIGHT_ANGLE_DEG+ABS_MAX_LEFT_ANGLE_DEG
+const float ABS_MAX_STEERING_SWEEP_DEG = 50.0; //ABS_MAX_RIGHT_ANGLE_DEG+ABS_MAX_LEFT_ANGLE_DEG
 
 const int ABS_MAX_STEERING_PULSES = 9600; //Experimentally measured with constant PWM (speed);
 
@@ -49,7 +53,7 @@ const float ABS_MAX_SPEED_METERS_SECOND = 1.4; // aprox 5 Km/h
 const float SPEED_ENCODER_PULSES_PER_REV = 24;
 const float SPEED_MOTOR_REDUCTION = 1.0;
 
-const float PULSES_PER_METER = 0.0517; //PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES_PER_REV*SPEED_MOTOR_REDUCTION)
+const float METERS_PER_PULSE = 0.0517; //PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES_PER_REV*SPEED_MOTOR_REDUCTION)
 
 const float ABS_MAX_SPEED_VOLTS = 4.9;
 const float MIN_VOLTS_TO_RELEASE_BRAKE = 0.5;

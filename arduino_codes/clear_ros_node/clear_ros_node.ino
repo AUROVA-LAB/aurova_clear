@@ -22,6 +22,7 @@
 
 #include "headers/arduino_ros_interface.h"
 #include "headers/vehicle.h"
+#include "headers/configuration_vehicle_hardware.h"
 
 int warning_code = NO_WARNINGS;
 
@@ -64,12 +65,6 @@ void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desire
     //Copy the incoming message
     desired_ackermann_state.header = desired_ackermann_state_msg.header;
     desired_ackermann_state.drive = desired_ackermann_state_msg.drive;
-
-    if (verbose_level == MAX_VERBOSE_LEVEL)
-    {
-      //Copy to echo the incoming command
-      desired_ackermann_state_echo = desired_ackermann_state; // just repeat the input to check communications
-    }
   }
   else
   {
@@ -85,10 +80,10 @@ ros::Publisher required_ackermann_publisher("echo_desired_ackermann_state", &des
 
 
 /*!
- * Publisher to communicate the ackermann state measured with the sensor hall and the encoder
+ * Publisher to communicate the ackermann state estimated with the kalman filters, the sensor hall and the encoder
  */
-ackermann_msgs::AckermannDriveStamped measured_ackermann_state;
-ros::Publisher measured_ackermann_publisher("measured_ackermann_state", &measured_ackermann_state);
+ackermann_msgs::AckermannDriveStamped estimated_ackermann_state;
+ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
 
 
 
@@ -98,6 +93,14 @@ ros::Publisher measured_ackermann_publisher("measured_ackermann_state", &measure
  * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
  */
 std_msgs::Float32MultiArray desired_vel_pid_gains;
+
+/*TODO --> look for a good initialization!
+desired_vel_pid_gains.data_length = 3;
+desired_vel_pid_gains.data[0] = IMPOSSIBLE_PID_GAIN;
+desired_vel_pid_gains.data[1] = IMPOSSIBLE_PID_GAIN;
+desired_vel_pid_gains.data[2] = IMPOSSIBLE_PID_GAIN;
+*/
+
 std_msgs::Float32MultiArray vel_pid_gains_echo;
 void velPIDGainsCB(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
 {
@@ -106,12 +109,6 @@ void velPIDGainsCB(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
 
   desired_vel_pid_gains = vel_pid_gains_msg;
   desired_vel_pid_gains.data_length = 3;
-
-  if (verbose_level == MAX_VERBOSE_LEVEL)
-  {
-    vel_pid_gains_echo = desired_vel_pid_gains;
-  }
-
 }
 ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_vel_pid_gains", &velPIDGainsCB);
 
@@ -133,11 +130,6 @@ void steeringPIDGainsCB(const std_msgs::Float32MultiArray& ste_pid_gains_msg)
 
   desired_ste_pid_gains = ste_pid_gains_msg;
   desired_ste_pid_gains.data_length = 3;
-
-  if (verbose_level == MAX_VERBOSE_LEVEL)
-  {
-    ste_pid_gains_echo = desired_ste_pid_gains;
-  }
 
 }
 ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desired_steering_pid_gains",
@@ -239,7 +231,7 @@ void setup()
   nh.advertise(arduino_status_publisher);
   nh.advertise(speed_volts_and_steering_pwm);
 
-  nh.advertise(measured_ackermann_publisher);
+  nh.advertise(estimated_ackermann_publisher);
 
   wdt_enable(WDTO_500MS);
 }
@@ -283,7 +275,11 @@ void receiveROSInputs(void)
     nh.spinOnce();
 
     //! passing ROS inputs to the vehicle
-    AckermannVehicle.updateDesiredState(desired_ackermann_state);
+    if(AckermannVehicle.getOperationalMode() == ROS_CONTROL)
+    {
+    	AckermannVehicle.updateROSDesiredState(desired_ackermann_state);
+    }
+
     AckermannVehicle.updatePIDGains(desired_vel_pid_gains, desired_ste_pid_gains);
 }
 
@@ -311,7 +307,7 @@ void sendOutputsToROS(void)
   if (verbose_level >= MIN_VERBOSE_LEVEL)
   {
     sendArduinoStatus();
-    measured_ackermann_publisher.publish(&measured_ackermann_state);
+    estimated_ackermann_publisher.publish(&estimated_ackermann_state);
     speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
   }
 }
@@ -331,7 +327,7 @@ void loop()
 
   if (communicate_with_ROS) receiveROSInputs();
 
-  AckermannVehicle.updateMeasuredState(measured_ackermann_state);
+  AckermannVehicle.updateState(estimated_ackermann_state);
 
   AckermannVehicle.readOnBoardUserInterface();
 
