@@ -83,6 +83,8 @@ Vehicle::Vehicle()
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0.0, 8.0, 0.0, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
+  speed_stimator_ = new sdkf(1.0, 1.0, 0.25, 0.0064, 0.0225);
+
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0.0, 0.0, 0.0, 0);
   steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
@@ -226,6 +228,10 @@ int Vehicle::getOperationalMode(void)
 
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state)
 {
+  // We always make the prediction step
+	//float covariance;
+	//speed_stimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
+
   if(timeLastComputeSteering > SAMPLING_TIME_TEENSY)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
@@ -245,17 +251,20 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.speed = speed_measures[0]*METERS_PER_PULSE*direction;
 	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
+
+	//speed_stimator_->make_correction(measured_state_.speed, estimated_state_.speed, covariance);
   }
 
-  //without Kalman
-  /*
+  //without Kalman for speed estimation
+
   estimated_state_.speed = measured_state_.speed;
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
 
+
   estimated_state_.steering_angle = measured_state_.steering_angle;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
-  */
+
 
   estimated_ackermann_state.drive.speed = estimated_state_.speed;
   estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
@@ -319,8 +328,8 @@ void Vehicle::calculateCommandOutputs(void)
     case RESET:
       desired_state_.speed = SPEED_ZERO;
       desired_state_.steering_angle = STEERING_CENTERED;
-	  speed_controller_->Compute();
-	  steering_controller_->Compute();
+	  //speed_controller_->Compute();
+	  //steering_controller_->Compute();
       break;
   }
 }
