@@ -243,24 +243,26 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	if(!speed_actuator_->getFlagForward()) direction = -1.0;
 
 	measured_state_.speed = speed_measures[0]*METERS_PER_PULSE*direction;
-	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE;
+	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
   }
 
+  //without Kalman
+  /*
   estimated_state_.speed = measured_state_.speed;
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
 
   estimated_state_.steering_angle = measured_state_.steering_angle;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
+  */
 
+  estimated_ackermann_state.drive.speed = estimated_state_.speed;
+  estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
+  estimated_ackermann_state.drive.jerk = estimated_state_.jerk;
 
-  estimated_ackermann_state.drive.speed = measured_state_.speed;
-  estimated_ackermann_state.drive.acceleration = measured_state_.acceleration;
-  estimated_ackermann_state.drive.jerk = measured_state_.jerk;
-
-  estimated_ackermann_state.drive.steering_angle = measured_state_.steering_angle;
-  estimated_ackermann_state.drive.steering_angle_velocity = measured_state_.steering_angle_velocity;
+  estimated_ackermann_state.drive.steering_angle = estimated_state_.steering_angle;
+  estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
 
 
 }
@@ -290,39 +292,35 @@ void Vehicle::calculateCommandOutputs(void)
   switch (operational_mode_)
   {
     case REMOTE_CONTROL:
-		  if(!REMOTE_CONTROL_USE_PID)
-		  {
-		      speed_volts_pid_ = remote_control_.speed_volts;
-		      steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
-		  }else{
-			  desired_state_.speed = remote_control_.desired_state.speed;
-			  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
-		      speed_controller_->Compute();
-		      steering_controller_->Compute();
-		  }
+	  if(!REMOTE_CONTROL_USE_PID)
+	  {
+		  speed_volts_pid_ = remote_control_.speed_volts;
+		  steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
+	  }else{
+		  desired_state_.speed = remote_control_.desired_state.speed;
+		  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
+		  speed_controller_->Compute();
+		  steering_controller_->Compute();
+	  }
       break;
 
     case ROS_CONTROL:
 
       speed_controller_->Compute();
-
       steering_controller_->Compute();
-
       break;
 
     case EMERGENCY_STOP:
 
       speed_volts_ = SPEED_ZERO;
       steering_angle_pwm_ = STEERING_CENTERED;
-
       break;
 
     case RESET:
-
-      speed_volts_ = SPEED_ZERO;
-      //TODO: Use the PID controllers to centre the steering
-      steering_angle_pwm_ = STEERING_CENTERED;
-
+      desired_state_.speed = SPEED_ZERO;
+      desired_state_.steering_angle = STEERING_CENTERED;
+	  speed_controller_->Compute();
+	  steering_controller_->Compute();
       break;
   }
 }
