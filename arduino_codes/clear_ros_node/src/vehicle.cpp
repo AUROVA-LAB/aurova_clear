@@ -83,7 +83,7 @@ Vehicle::Vehicle()
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0.0, 8.0, 0.0, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
-  speed_stimator_ = new sdkf(1.0, 1.0, 0.25, 0.0064, 0.0225);
+  speed_stimator_ = new sdkf(1.0, 1.0, 0.25, 0.00064, 1.0);
 
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0.0, 0.0, 0.0, 0);
