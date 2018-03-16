@@ -109,6 +109,8 @@ void velPIDGainsCB(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
 
   desired_vel_pid_gains = vel_pid_gains_msg;
   desired_vel_pid_gains.data_length = 3;
+
+  AckermannVehicle.setVelocityPIDGains(desired_vel_pid_gains);
 }
 ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_vel_pid_gains", &velPIDGainsCB);
 
@@ -130,6 +132,8 @@ void steeringPIDGainsCB(const std_msgs::Float32MultiArray& ste_pid_gains_msg)
 
   desired_ste_pid_gains = ste_pid_gains_msg;
   desired_ste_pid_gains.data_length = 3;
+
+  AckermannVehicle.setSteeringPIDGains(desired_ste_pid_gains);
 
 }
 ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desired_steering_pid_gains",
@@ -279,8 +283,6 @@ void receiveROSInputs(void)
     {
     	AckermannVehicle.updateROSDesiredState(desired_ackermann_state);
     }
-
-    AckermannVehicle.updatePIDGains(desired_vel_pid_gains, desired_ste_pid_gains);
 }
 
 
