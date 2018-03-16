@@ -30,9 +30,6 @@ bool error_encoder_count = false;
 bool error_limit_switch = false;
 bool error_direction = false;
 
-const long int max_encoder_pulses = 70000;
-const long int min_encoder_pulses = -70000;
-
 
 SteeringHardwareInterface::SteeringHardwareInterface()
 
@@ -70,23 +67,21 @@ SteeringHardwareInterface::~SteeringHardwareInterface()
 
 void SteeringHardwareInterface::steeringMotor(int direction)
 {
-	if (direction>0 && direction<256 && digitalRead(PIN_LSR) == HIGH)
+	if (direction<0 && direction>=-1*ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSR) == HIGH)
 	{
 		digitalWrite(pin_ina_,HIGH);
 		digitalWrite(pin_inb_,LOW);
-		analogWrite(pin_pwm_,direction);
 	}
-	else if (direction<0 && direction>-256 && digitalRead(PIN_LSL) == HIGH)
+	else if (direction>0 && direction<=ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSL) == HIGH)
 	{
 		digitalWrite(pin_ina_,LOW);
 		digitalWrite(pin_inb_,HIGH);
-		analogWrite(pin_pwm_,-1*direction);
 	}
 	else if (direction == 0)
 	{
 		digitalWrite(pin_ina_,LOW);
 		digitalWrite(pin_inb_,LOW);
-		analogWrite(pin_pwm_,0);
+		direction = 0;
 	}
 
 	else
@@ -94,21 +89,24 @@ void SteeringHardwareInterface::steeringMotor(int direction)
 		error_direction = true;
 		digitalWrite(pin_ina_,LOW);
 		digitalWrite(pin_inb_,LOW);
-		analogWrite(pin_pwm_,0);
+		direction = 0;
 	}
+
+	analogWrite(pin_pwm_,fabs(direction)); //Direction can't be negative
+
 }
 
 
 bool SteeringHardwareInterface::steeringCalibration(void)
 {
-	int steering_speed = ABS_MOTOR_PWM_FOR_CALIBRATION;
+	int steering_speed = -1*ABS_MOTOR_PWM_FOR_CALIBRATION;
 
 	steering_encoder_->encoderRead(0,measures_[0]); //pulses
 
 	switch (current_state)
 	{
 		case RIGHT:
-			if(digitalRead(PIN_LSR) == LOW)//(prohibit_right_move == true)
+			if(digitalRead(PIN_LSR) == LOW)
 			{
 				next_state = CENTERED;
 				steering_encoder_->encoderReset(11);
@@ -117,10 +115,10 @@ bool SteeringHardwareInterface::steeringCalibration(void)
 
 		case CENTERED:
 			if(measures_[0] < PULSES_TO_CENTER_FROM_RIGHT - TOLERANCE_PULSES_FIND_ZERO_POS)
-				steering_speed = -ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
+				steering_speed = ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
 
 			else if (measures_[0] > PULSES_TO_CENTER_FROM_RIGHT + TOLERANCE_PULSES_FIND_ZERO_POS)
-				steering_speed = ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
+				steering_speed = -1*ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
 
 			else
 			{
@@ -151,7 +149,7 @@ void SteeringHardwareInterface::doLimitSwitch(void)
 float* SteeringHardwareInterface::getSteeringMeasures(void)
 {
 	steering_encoder_->encoderRead(0,measures_[0]); //pulses
-	steering_encoder_->encoderRead(1,measures_[1]); //vel
+	steering_encoder_->encoderRead(1,measures_[1]); //pulses/s
 
 	return measures_;
 

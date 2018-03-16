@@ -60,4 +60,14 @@ const float MIN_VOLTS_TO_RELEASE_BRAKE = 0.5;
 
 const int MAX_TIME_ZERO_VOLTS_TO_BRAKE = 5000; //millis
 
+//------------PID GAINS --------//
+
+const float STEERING_KP = 10;
+const float STEERING_KI = 8;
+const float STEERING_KD = 0;
+
+const float SPEED_KP = 0;
+const float SPEED_KI = 8;
+const float SPEED_KD = 0;
+
 #endif /* HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_ */

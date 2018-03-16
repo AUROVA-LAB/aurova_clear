@@ -80,14 +80,14 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, 0.0, 8.0, 0.0, 0);
+  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD, 0);
   speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
   speed_stimator_ = new sdkf(1.0, 1.0, 0.25, 0.00064, 1.0);
 
 
-  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, 0.0, 0.0, 0.0, 0);
-  steering_controller_->SetOutputLimits(0, ABS_MAX_STEERING_MOTOR_PWM);
+  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD, 0);
+  steering_controller_->SetOutputLimits(-ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
 
   speed_controller_->SetMode(AUTOMATIC); // Activate PID controllers
   steering_controller_->SetMode(AUTOMATIC);
@@ -352,8 +352,10 @@ void Vehicle::readRemoteControl(void)
 			  if(!REMOTE_CONTROL_USE_PID)
 			  {
 				  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
-				  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, -ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
-			  }else{
+				  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
+			  }
+			  else
+			  {
 				  remote_control_.desired_state.speed = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
 				  remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
 			  }
