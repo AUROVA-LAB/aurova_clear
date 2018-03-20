@@ -81,7 +81,8 @@ Vehicle::Vehicle()
   steering_actuator_->steeringMotor(0);
 
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD, 0);
-  speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+  //speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+  speed_controller_->SetOutputLimits(-1, 1);
 
   speed_stimator_ = new sdkf(1.0, 1.0, 0.25, 0.00064, 1.0);
 
@@ -257,7 +258,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
   //without Kalman for speed estimation
 
-  estimated_state_.speed = measured_state_.speed;
+  estimated_state_.speed = measured_state_.speed / ABS_MAX_SPEED_METERS_SECOND;
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
 
@@ -281,7 +282,7 @@ void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped&
   desired_state_.steering_angle = desired_ackermann_state.drive.steering_angle;
   desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
 
-  desired_state_.speed = desired_ackermann_state.drive.speed;
+  desired_state_.speed = desired_ackermann_state.drive.speed / ABS_MAX_SPEED_METERS_SECOND;
   desired_state_.acceleration = desired_ackermann_state.drive.acceleration;
   desired_state_.jerk = desired_ackermann_state.drive.jerk;
 }
@@ -306,7 +307,7 @@ void Vehicle::calculateCommandOutputs(void)
 		  speed_volts_pid_ = remote_control_.speed_volts;
 		  steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
 	  }else{
-		  desired_state_.speed = remote_control_.desired_state.speed;
+		  desired_state_.speed = remote_control_.desired_state.speed / ABS_MAX_SPEED_METERS_SECOND;
 		  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
 		  speed_controller_->Compute();
 		  steering_controller_->Compute();
@@ -430,7 +431,7 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
 
   else if(operational_mode_)
   {
-	  speed_volts_ = speed_volts_pid_;
+	  speed_volts_ = speed_volts_pid_ * ABS_MAX_SPEED_VOLTS;
 	  if(fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE) digitalWrite(BRAKE,LOW);
 	  steering_angle_pwm_ = steering_angle_pwm_pid_;
   }
