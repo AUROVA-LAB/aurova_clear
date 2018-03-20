@@ -24,7 +24,7 @@ const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 #define STEERING_CENTERED              0.0
 
 const float IMPOSSIBLE_PID_GAIN = -1.0;
-const bool  REMOTE_CONTROL_USE_PID = false;
+const bool  REMOTE_CONTROL_USE_PID = true;
 
 //! Sampling time encoders using I2C
 const unsigned int  SAMPLING_TIME_TEENSY = 100; //10Hz
@@ -66,8 +66,8 @@ const float STEERING_KP = 10;
 const float STEERING_KI = 8;
 const float STEERING_KD = 0;
 
-const float SPEED_KP = 0;
-const float SPEED_KI = 8;
+const float SPEED_KP = 0.8;
+const float SPEED_KI = 0.8;
 const float SPEED_KD = 0;
 
 #endif /* HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_ */
