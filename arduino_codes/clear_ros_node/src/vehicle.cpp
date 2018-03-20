@@ -352,7 +352,8 @@ void Vehicle::readRemoteControl(void)
 		  {
 			  if(!REMOTE_CONTROL_USE_PID)
 			  {
-				  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+				  //remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+				  remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -1.0, 1.0);
 				  remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
 			  }
 			  else
