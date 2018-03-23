@@ -84,7 +84,7 @@ Vehicle::Vehicle()
   //speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
   speed_controller_->SetOutputLimits(-1, 1);
 
-  speed_stimator_ = new sdkf(1.0, 0.3, 0.25, 0.0064, 0.05);
+  speed_stimator_ = new sdkf(1.0, 0.3, 0.001, 0.008, 0.007);
 
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD, 0);
@@ -241,7 +241,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
   }
-  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY * 10)
+  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY * 20)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
@@ -260,9 +260,10 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
   //estimated_state_.speed = measured_state_.speed / ABS_MAX_SPEED_METERS_SECOND;
   estimated_state_.speed = estimated_state_.speed / ABS_MAX_SPEED_METERS_SECOND;
+
+  if (abs(estimated_state_.speed) < 0.01) estimated_state_.speed = 0.0;
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
-
 
   estimated_state_.steering_angle = measured_state_.steering_angle;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;

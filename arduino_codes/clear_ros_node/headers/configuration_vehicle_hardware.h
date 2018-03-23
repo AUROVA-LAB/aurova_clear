@@ -15,7 +15,7 @@ const float MIN_CURVATURE_RADIUS_METERS = 4.0;
 const float LENGTH_METERS = 1.672;
 const float WIDTH_METERS = 0.797;
 
-const float REAR_WHEEL_DIAM_METERS = 0.395; // Manufacturer 0.406
+const float REAR_WHEEL_DIAM_METERS = 0.395 * 0.92; // Manufacturer 0.406
 const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 
 
@@ -49,11 +49,11 @@ const int TOLERANCE_PULSES_FIND_ZERO_POS = 20;
 
 
 //------------SPEED-----------//
-const float ABS_MAX_SPEED_METERS_SECOND = 1.4; // aprox 5 Km/h
+const float ABS_MAX_SPEED_METERS_SECOND = 1.6; // aprox 5 Km/h
 const float SPEED_ENCODER_PULSES_PER_REV = 24;
 const float SPEED_MOTOR_REDUCTION = 1.0;
 
-const float METERS_PER_PULSE = 0.0517; //PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES_PER_REV*SPEED_MOTOR_REDUCTION)
+const float METERS_PER_PULSE = M_PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES_PER_REV*SPEED_MOTOR_REDUCTION);
 
 const float ABS_MAX_SPEED_VOLTS = 4.9;
 const float MIN_VOLTS_TO_RELEASE_BRAKE = 0.5;
@@ -66,8 +66,8 @@ const float STEERING_KP = 10;
 const float STEERING_KI = 8;
 const float STEERING_KD = 0;
 
-const float SPEED_KP = 0.8;
-const float SPEED_KI = 0.8;
+const float SPEED_KP = 0.5;
+const float SPEED_KI = 1.0;
 const float SPEED_KD = 0;
 
 #endif /* HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_ */
