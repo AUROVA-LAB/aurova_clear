@@ -20,6 +20,9 @@
 PID::PID(float* Input, float* Output, float* Setpoint,
         float Kp, float Ki, float Kd, int POn, int ControllerDirection)
 {
+	outputSum = 0.0;
+	lastInput = 0.0;
+
     myOutput = Output;
     myInput = Input;
     mySetpoint = Setpoint;
@@ -28,12 +31,12 @@ PID::PID(float* Input, float* Output, float* Setpoint,
     PID::SetOutputLimits(0, 255);				//default output limit corresponds to
 												//the arduino pwm limits
 
-    SampleTime = 100;							//default Controller Sample Time is 0.1 seconds
+    SampleTime = 1000;							//default Controller Sample Time is 0.001 seconds
 
     PID::SetControllerDirection(ControllerDirection);
     PID::SetTunings(Kp, Ki, Kd, POn);
 
-    lastTime = millis()-SampleTime;
+    lastTime = micros()-SampleTime;
 }
 
 /*Constructor (...)*********************************************************
@@ -58,10 +61,11 @@ PID::PID(float* Input, float* Output, float* Setpoint,
 bool PID::Compute()
 {
    if(!inAuto) return false;
-   unsigned long now = millis();
-   unsigned long timeChange = (now - lastTime);
-   if(timeChange>=SampleTime)
-   {
+   unsigned long int now = micros();
+   unsigned long int timeChange = (now - lastTime);
+   //if(timeChange>=SampleTime)
+   //{
+	  SetSampleTime((int)timeChange);
       /*Compute all the working error variables*/
       float input = *myInput;
       float error = *mySetpoint - input;
@@ -90,8 +94,16 @@ bool PID::Compute()
       lastInput = input;
       lastTime = now;
 	    return true;
-   }
-   else return false;
+   //}
+   //else return false;
+}
+
+void PID::Reset(void)
+{
+	outputSum = 0.0;
+	lastInput = 0.0;
+	lastTime = micros();
+	*myOutput = 0.0;
 }
 
 /* SetTunings(...)*************************************************************
@@ -108,7 +120,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn)
 
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-   float SampleTimeInSec = ((float)SampleTime)/1000;
+   float SampleTimeInSec = ((float)SampleTime)/1000000;
    kp = Kp;
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
@@ -129,7 +141,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd){
 }
 
 /* SetSampleTime(...) *********************************************************
- * sets the period, in Milliseconds, at which the calculation is performed
+ * sets the period, in microseconds, at which the calculation is performed
  ******************************************************************************/
 void PID::SetSampleTime(int NewSampleTime)
 {
@@ -139,7 +151,7 @@ void PID::SetSampleTime(int NewSampleTime)
                       / (float)SampleTime;
       ki *= ratio;
       kd /= ratio;
-      SampleTime = (unsigned long)NewSampleTime;
+      SampleTime = (unsigned long int)NewSampleTime;
    }
 }
 
@@ -204,7 +216,7 @@ void PID::SetControllerDirection(int Direction)
 {
    if(inAuto && Direction !=controllerDirection)
    {
-	    kp = (0 - kp);
+	  kp = (0 - kp);
       ki = (0 - ki);
       kd = (0 - kd);
    }

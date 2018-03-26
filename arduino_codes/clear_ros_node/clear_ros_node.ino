@@ -251,8 +251,8 @@ void setup()
  * COMMUNICATION_REFRESH_TIME_IN_MILLIS constant, is reset to false when
  * this condition is not satisfied
  */
-unsigned long current_time = 0;
-unsigned long previous_time = 0;
+unsigned long int current_time = 0;
+unsigned long int previous_time = 0;
 bool checkIfItsTimeToInterfaceWithROS(void)
 {
   bool check = false;
@@ -321,6 +321,8 @@ void sendOutputsToROS(void)
  * \brief Arduino main loop, from here are managed all communications, sensors and actuators
  */
 bool communicate_with_ROS = false;
+
+unsigned long lastTime_2 = micros();
 void loop()
 {
   wdt_reset();
@@ -338,7 +340,11 @@ void loop()
 
   AckermannVehicle.updateFiniteStateMachine();
 
+  unsigned long int now_2 = micros();
+  unsigned long int timeChange_2 = (now_2 - lastTime_2);
   AckermannVehicle.calculateCommandOutputs();
+  lastTime_2 = now_2;
+  desired_ackermann_state_echo.drive.jerk = (float)timeChange_2;
 
   if(AckermannVehicle.getOperationalMode() != CALIBRATION)
 	  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);

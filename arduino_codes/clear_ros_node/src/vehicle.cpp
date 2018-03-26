@@ -84,7 +84,7 @@ Vehicle::Vehicle()
   //speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
   speed_controller_->SetOutputLimits(-1, 1);
 
-  speed_stimator_ = new sdkf(1.0, 0.3, 0.001, 0.008, 0.007);
+  speed_stimator_ = new sdkf(1.0, 0.3, 0.001, 0.1, 0.001);
 
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD, 0);
@@ -241,7 +241,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
   }
-  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY * 20)
+  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY * 5)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
@@ -296,7 +296,7 @@ void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ack
 
     desired_ackermann_state_echo.drive.speed = desired_state_.speed;
     desired_ackermann_state_echo.drive.acceleration = desired_state_.acceleration;
-    desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
+    //desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
 void Vehicle::calculateCommandOutputs(void)
@@ -311,15 +311,37 @@ void Vehicle::calculateCommandOutputs(void)
 	  }else{
 		  desired_state_.speed = remote_control_.desired_state.speed / ABS_MAX_SPEED_METERS_SECOND;
 		  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
+		  /*
+		  if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
+	      {
+			  desired_state_.speed = 0.0;
+			  estimated_state_.speed = 0.0;
+
+			  speed_volts_pid_ = 0.0;
+			  speed_controller_->Reset();
+		  }else{
+			  speed_controller_->Compute();
+		  }
+		  */
 		  speed_controller_->Compute();
 		  steering_controller_->Compute();
 	  }
       break;
 
     case ROS_CONTROL:
-
+    	/*
+      if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
+	  {
+    	  desired_state_.speed = 0.0;
+    	  estimated_state_.speed = 0.0;
+		  speed_volts_pid_ = 0.0;
+		  speed_controller_->Reset();
+	  }else{
+		  speed_controller_->Compute();
+	  }
+	  */
       speed_controller_->Compute();
-      steering_controller_->Compute();
+	  steering_controller_->Compute();
       break;
 
     case EMERGENCY_STOP:

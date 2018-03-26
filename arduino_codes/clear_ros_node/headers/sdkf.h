@@ -30,6 +30,9 @@ private:
 	float kalman_gain_;
 	float innovation_;
 	float innovation_covariance_;
+
+	unsigned long int last_time_prediction_;
+	unsigned long int last_time_correction_;
 public:
 	sdkf(float A, float B, float P0, float Q, float R);
 	virtual ~sdkf();

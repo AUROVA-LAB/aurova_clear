@@ -54,8 +54,10 @@ class PID
     void SetSampleTime(int);              // * sets the frequency, in Milliseconds, with which 
                                           //   the PID calculation is performed.  default is 100
 										  
-										  
-										  
+	void Reset(void);
+
+	void Initialize();
+
   //Display functions ****************************************************************
 	float GetKp();						  // These functions query the pid for interal values.
 	float GetKi();						  //  they were created mainly for the pid front-end,
@@ -64,7 +66,6 @@ class PID
 	int GetDirection();					  //
 
   private:
-	void Initialize();
 	
 	float dispKp;				// * we'll hold on to the tuning parameters in user-entered
 	float dispKi;				//   format for display purposes
@@ -82,7 +83,7 @@ class PID
     float *mySetpoint;           //   PID, freeing the user from having to constantly tell us
                                   //   what these values are.  with pointers we'll just know.
 			  
-	unsigned long lastTime;
+	unsigned long int lastTime;
 	float outputSum, lastInput;
 
 	unsigned long SampleTime;

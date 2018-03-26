@@ -58,6 +58,8 @@ const float METERS_PER_PULSE = M_PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES
 const float ABS_MAX_SPEED_VOLTS = 4.9;
 const float MIN_VOLTS_TO_RELEASE_BRAKE = 0.5;
 
+const float MIN_SETPOINT_TO_USE_PID = 0.05;
+
 const int MAX_TIME_ZERO_VOLTS_TO_BRAKE = 5000; //millis
 
 //------------PID GAINS --------//

@@ -6,6 +6,7 @@
  */
 
 #include "../headers/sdkf.h"
+#include "Arduino.h"
 
 sdkf::sdkf(float A, float B, float P0, float Q, float R) {
 	// TODO Auto-generated constructor stub
@@ -28,6 +29,9 @@ sdkf::sdkf(float A, float B, float P0, float Q, float R) {
 	kalman_gain_ = 0.0;
 	innovation_ = 0.0;
 	innovation_covariance_ = 0.0;
+
+	last_time_prediction_ = micros();
+	last_time_correction_ = micros();
 }
 
 sdkf::~sdkf() {
@@ -36,10 +40,16 @@ sdkf::~sdkf() {
 
 void sdkf::make_prediction(float volts, float& vel, float& covariance)
 {
+	unsigned long int now = micros();
+	unsigned long int timeChange = (now - last_time_prediction_);
+	double freq = 1000.0;
+
+	if(timeChange > 0.0) freq = 1000000.0 / (timeChange);
+
 	float dvolts = (volts - volts_k_minus_one_);
 
 	vel_ = A_ * vel_ + B_ * dvolts; // dt gets cancelled
-	covariance_ = covariance_ + process_noise_;
+	covariance_ = covariance_ + process_noise_ / freq;
 
 	covariance = covariance_;
 	vel = vel_;
@@ -49,8 +59,14 @@ void sdkf::make_prediction(float volts, float& vel, float& covariance)
 
 void sdkf::make_correction(float measured_speed, float& vel, float& covariance)
 {
+	unsigned long int now = micros();
+	unsigned long int timeChange = (now - last_time_correction_);
+	double freq = 1000.0;
+
+	if(timeChange > 0.0) freq = 1000000.0 / (timeChange);
+
 	innovation_ = measured_speed - vel_;
-	innovation_covariance_ = covariance_ + sensor_noise_;
+	innovation_covariance_ = covariance_ + sensor_noise_ / freq;
 	kalman_gain_ = covariance_ / innovation_covariance_;
 
 	vel_ = vel_ + kalman_gain_ * innovation_;
