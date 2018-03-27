@@ -27,7 +27,9 @@ const float IMPOSSIBLE_PID_GAIN = -1.0;
 const bool  REMOTE_CONTROL_USE_PID = true;
 
 //! Sampling time encoders using I2C
-const unsigned int  SAMPLING_TIME_TEENSY = 100; //10Hz
+
+const unsigned int  SAMPLING_HERZ_SPEED = 2; //Hz
+const unsigned int  SAMPLING_HERZ_STEERING = 10; //Hz
 
 //------------STEERING-----------//
 const float ABS_MAX_RIGHT_ANGLE_DEG = 26.0; //Experimentally measured

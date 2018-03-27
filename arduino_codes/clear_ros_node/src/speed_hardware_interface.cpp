@@ -11,10 +11,12 @@
 #include "../headers/configuration_vehicle_hardware.h"
 
 
+const unsigned int  SAMPLING_TIME_SPEED = (1.0/SAMPLING_HERZ_SPEED)*1000; //ms
+
 int digital = 0;
 
 elapsedMillis refreshDac = 0;
-int interval = SAMPLING_TIME_TEENSY*4.25;
+unsigned int interval = SAMPLING_TIME_SPEED*4.25;
 
 float voltage_ant = ABS_MAX_SPEED_VOLTS+1;
 

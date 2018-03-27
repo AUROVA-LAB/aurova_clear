@@ -21,9 +21,9 @@ volatile int32_t pulses1 = 0;
 volatile int32_t pulses_prev1 = 0;
 
 //Times
-uint32_t dt1 = 0;
-float dt_f1 = 0;
-uint32_t currTime1 = 0;
+uint32_t dt = 0;
+float dt_f = 0;
+uint32_t currTime = 0;
 uint32_t prevTime1 = 0;
 
 //Interrupts
@@ -37,14 +37,18 @@ void encoder_count1(void)
 
 void ComputeState1()
 {
-  currTime1 = millis();
-  dt1 = (float)(currTime1-prevTime1);
-  dt_f1 = dt1/1000.0;
+  currTime = micros();
+  if(currTime > prevTime1)
+    dt = (float)(currTime-prevTime1);
+  else
+    dt = (float)(4294967295-prevTime1);  
+  
+  dt_f = dt/1000000.0;
 
-  vel1  = (pulses1-pulses_prev1) / dt_f1;
+  vel1  = (pulses1-pulses_prev1) / dt_f;
 
   pulses_prev1 = pulses1;
-  prevTime1 = currTime1; 
+  prevTime1 = currTime; 
 }
 
 //----ENCODER 2 SPEED----//
@@ -59,9 +63,6 @@ volatile int32_t pulses2 = 0;
 volatile int32_t pulses_prev2 = 0;
 
 //Times
-uint32_t dt2 = 0;
-float dt_f2 = 0;
-uint32_t currTime2 = 0;
 uint32_t prevTime2 = 0;
 
 //Interrupts
@@ -69,18 +70,22 @@ void encoder_count2(void) {pulses2 += 1;}
 
 void ComputeState2()
 {
-  currTime2 = millis();
-  dt2 = (float)(currTime2-prevTime2);
-  dt_f2 = dt2/1000.0;
+  currTime = micros();
+  if(currTime > prevTime2)
+    dt = (float)(currTime-prevTime2);
+  else
+    dt = (float)(4294967295-prevTime2); 
   
-  vel2  = (pulses2-pulses_prev2) / dt_f2;
-  acel2 = (vel2-vel_prev2) / dt_f2;
-  jerk2 = (acel2-acel_prev2) / dt_f2;
+  dt_f = dt/1000000.0;
+  
+  vel2  = (pulses2-pulses_prev2) / dt_f;
+  acel2 = (vel2-vel_prev2) / dt_f;
+  jerk2 = (acel2-acel_prev2) / dt_f;
 
   pulses_prev2 = pulses2;
   vel_prev2 = vel2;
   acel_prev2   = acel2;
-  prevTime2 = currTime2;
+  prevTime2 = currTime;
 }
 
 
@@ -169,7 +174,6 @@ void setup()
   pinMode(PIN_HALL, INPUT);
   attachInterrupt(digitalPinToInterrupt(PIN_EN_A), encoder_count1, RISING);
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), encoder_count2, CHANGE);
-  
 }
 
 void loop() 

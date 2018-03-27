@@ -14,8 +14,10 @@
 #include "../headers/configuration_vehicle_hardware.h"
 #include "../headers/PID_v1.h"
 
+const unsigned int  SAMPLING_TIME_SPEED = (1.0/SAMPLING_HERZ_SPEED)*1000; //ms
+const unsigned int  SAMPLING_TIME_STEERING = (1.0/SAMPLING_HERZ_STEERING)*1000; //ms
 
-elapsedMillis timeLastComputeSteering = SAMPLING_TIME_TEENSY/2;
+elapsedMillis timeLastComputeSteering = 0;
 elapsedMillis timeLastComputeSpeed = 0;
 
 elapsedMillis timeBeforeBrake = 0;
@@ -109,6 +111,18 @@ Vehicle::Vehicle()
 
   pinMode(BRAKE,OUTPUT);
   digitalWrite(BRAKE,HIGH);
+
+
+  if(SAMPLING_TIME_SPEED > SAMPLING_TIME_STEERING)
+  {
+	  timeLastComputeSteering = SAMPLING_TIME_STEERING * (float)(fabs(SAMPLING_TIME_STEERING-SAMPLING_TIME_SPEED))/SAMPLING_TIME_SPEED;
+  }
+  else if (SAMPLING_TIME_STEERING > SAMPLING_TIME_SPEED)
+  {
+	  timeLastComputeSpeed = SAMPLING_TIME_SPEED * (float)(fabs(SAMPLING_TIME_STEERING-SAMPLING_TIME_SPEED))/SAMPLING_TIME_STEERING;
+  }
+  else
+	  timeLastComputeSteering = SAMPLING_TIME_STEERING/2;
 
 }
 
@@ -233,7 +247,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   float covariance;
   speed_stimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
 
-  if(timeLastComputeSteering > SAMPLING_TIME_TEENSY)
+  if(timeLastComputeSteering > SAMPLING_TIME_STEERING)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
 	timeLastComputeSteering = 0;
@@ -241,7 +255,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
   }
-  if(timeLastComputeSpeed > SAMPLING_TIME_TEENSY * 5)
+  if(timeLastComputeSpeed > SAMPLING_TIME_SPEED)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
