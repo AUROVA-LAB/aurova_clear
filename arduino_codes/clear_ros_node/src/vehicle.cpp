@@ -112,7 +112,7 @@ Vehicle::Vehicle()
   pinMode(BRAKE,OUTPUT);
   digitalWrite(BRAKE,HIGH);
 
-
+  //desynchronizing sampling times for I2C
   if(SAMPLING_TIME_SPEED > SAMPLING_TIME_STEERING)
   {
 	  timeLastComputeSteering = SAMPLING_TIME_STEERING * (float)(fabs(SAMPLING_TIME_STEERING-SAMPLING_TIME_SPEED))/SAMPLING_TIME_SPEED;
@@ -322,10 +322,12 @@ void Vehicle::calculateCommandOutputs(void)
 	  {
 		  speed_volts_pid_ = remote_control_.speed_volts;
 		  steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
-	  }else{
+	  }
+	  else
+	  {
 		  desired_state_.speed = remote_control_.desired_state.speed / ABS_MAX_SPEED_METERS_SECOND;
 		  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
-		  /*
+		  ///*
 		  if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	      {
 			  desired_state_.speed = 0.0;
@@ -336,14 +338,14 @@ void Vehicle::calculateCommandOutputs(void)
 		  }else{
 			  speed_controller_->Compute();
 		  }
-		  */
-		  speed_controller_->Compute();
+		  //*/
+		  //speed_controller_->Compute();
 		  steering_controller_->Compute();
 	  }
       break;
 
     case ROS_CONTROL:
-    	/*
+    	///*
       if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	  {
     	  desired_state_.speed = 0.0;
@@ -353,8 +355,8 @@ void Vehicle::calculateCommandOutputs(void)
 	  }else{
 		  speed_controller_->Compute();
 	  }
-	  */
-      speed_controller_->Compute();
+	  //*/
+      //speed_controller_->Compute();
 	  steering_controller_->Compute();
       break;
 
