@@ -29,6 +29,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/PID}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.1663575536" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -44,6 +45,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/PID}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.1927474883" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -59,6 +61,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/SPI/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/clear_ros_node/libraries/PID}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.397666360" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
@@ -69,7 +72,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="libraries/ros_lib/actionlib|libraries/ros_lib/rospy_tutorials|libraries/ros_lib/rosgraph_msgs|libraries/ros_lib/turtlesim|libraries/ros_lib/pcl_msgs|libraries/ros_lib/turtle_actionlib|libraries/ros_lib/std_msgs|libraries/ros_lib/gazebo_msgs|libraries/ros_lib/rosserial_msgs|libraries/ros_lib/ros|libraries/ros_lib/actionlib_msgs|libraries/ros_lib/nav_msgs|libraries/ros_lib/smach_msgs|libraries/ros_lib/geometry_msgs|libraries/ros_lib/map_msgs|libraries/ros_lib/sensor_msgs|libraries/ros_lib/tf|libraries/ros_lib/roscpp_tutorials|libraries/ros_lib/dynamic_reconfigure|libraries/ros_lib/std_srvs|libraries/ros_lib/trajectory_msgs|libraries/ros_lib/shape_msgs|libraries/ros_lib/laser_assembler|libraries/ros_lib/visualization_msgs|libraries/ros_lib/theora_image_transport|libraries/ros_lib/rosserial_mbed|libraries/ros_lib/roscpp|libraries/ros_lib/nodelet|libraries/ros_lib/actionlib_tutorials|libraries/ros_lib/tf2_msgs|libraries/ros_lib/stereo_msgs|libraries/ros_lib/polled_camera|libraries/ros_lib/bond|libraries/ros_lib/ackermann_msgs|libraries/ros_lib/diagnostic_msgs|libraries/ros_lib/rosserial_arduino|libraries/ros_lib/control_msgs|libraries/ros_lib/topic_tools|libraries/?*/**/?xamples/**|libraries/?*/**/?xtras/**|libraries/?*/**/test*/**|libraries/?*/**/third-party/**|libraries/**/._*|libraries/?*/utility/*/*" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+						<entry excluding="libraries/PID|libraries/ros_lib/actionlib|libraries/ros_lib/rospy_tutorials|libraries/ros_lib/rosgraph_msgs|libraries/ros_lib/turtlesim|libraries/ros_lib/pcl_msgs|libraries/ros_lib/turtle_actionlib|libraries/ros_lib/std_msgs|libraries/ros_lib/gazebo_msgs|libraries/ros_lib/rosserial_msgs|libraries/ros_lib/ros|libraries/ros_lib/actionlib_msgs|libraries/ros_lib/nav_msgs|libraries/ros_lib/smach_msgs|libraries/ros_lib/geometry_msgs|libraries/ros_lib/map_msgs|libraries/ros_lib/sensor_msgs|libraries/ros_lib/tf|libraries/ros_lib/roscpp_tutorials|libraries/ros_lib/dynamic_reconfigure|libraries/ros_lib/std_srvs|libraries/ros_lib/trajectory_msgs|libraries/ros_lib/shape_msgs|libraries/ros_lib/laser_assembler|libraries/ros_lib/visualization_msgs|libraries/ros_lib/theora_image_transport|libraries/ros_lib/rosserial_mbed|libraries/ros_lib/roscpp|libraries/ros_lib/nodelet|libraries/ros_lib/actionlib_tutorials|libraries/ros_lib/tf2_msgs|libraries/ros_lib/stereo_msgs|libraries/ros_lib/polled_camera|libraries/ros_lib/bond|libraries/ros_lib/ackermann_msgs|libraries/ros_lib/diagnostic_msgs|libraries/ros_lib/rosserial_arduino|libraries/ros_lib/control_msgs|libraries/ros_lib/topic_tools|libraries/?*/**/?xamples/**|libraries/?*/**/?xtras/**|libraries/?*/**/test*/**|libraries/?*/**/third-party/**|libraries/**/._*|libraries/?*/utility/*/*" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

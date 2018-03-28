@@ -59,12 +59,12 @@
 		<link>
 			<name>libraries/elapsedMillis</name>
 			<type>2</type>
-			<location>/home/idelpino/Arduino/libraries/elapsedMillis</location>
+			<location>/home/saul/Arduino/libraries/elapsedMillis</location>
 		</link>
 		<link>
 			<name>libraries/ros_lib</name>
 			<type>2</type>
-			<location>/home/idelpino/Arduino/libraries/ros_lib</location>
+			<location>/home/saul/Arduino/libraries/ros_lib</location>
 		</link>
 	</linkedResources>
 </projectDescription>

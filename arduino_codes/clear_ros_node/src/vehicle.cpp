@@ -12,7 +12,7 @@
 #include "../headers/arduino_ros_interface.h"
 #include "../headers/hardware_description_constants.h"
 #include "../headers/configuration_vehicle_hardware.h"
-#include "../headers/PID_v1.h"
+#include "../headers/pid.h"
 
 const unsigned int  SAMPLING_TIME_SPEED = (1.0/SAMPLING_HERZ_SPEED)*1000; //ms
 const unsigned int  SAMPLING_TIME_STEERING = (1.0/SAMPLING_HERZ_STEERING)*1000; //ms
@@ -82,18 +82,15 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD, 0);
+  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD);
   //speed_controller_->SetOutputLimits(-1 * ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
-  speed_controller_->SetOutputLimits(-1, 1);
+  speed_controller_->setOutputLimits(-1, 1);
 
   speed_stimator_ = new sdkf(1.0, 0.3, 0.001, 0.1, 0.001);
 
+  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
+  steering_controller_->setOutputLimits(-ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
 
-  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD, 0);
-  steering_controller_->SetOutputLimits(-ABS_MAX_STEERING_MOTOR_PWM, ABS_MAX_STEERING_MOTOR_PWM);
-
-  speed_controller_->SetMode(AUTOMATIC); // Activate PID controllers
-  steering_controller_->SetMode(AUTOMATIC);
 
   led_rgb_value_[0] = 0;
   led_rgb_value_[1] = 0;
@@ -142,40 +139,35 @@ bool Vehicle::componentsCalibration()
 
 void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
 {
-  float kp = desired_pid_gains.data[0];
-  float ki = desired_pid_gains.data[1];
-  float kd = desired_pid_gains.data[2];
+	float kp = desired_pid_gains.data[0];
+	float ki = desired_pid_gains.data[1];
+	float kd = desired_pid_gains.data[2];
 
-  speed_controller_->SetTunings(kp,ki,kd);
+	speed_controller_->setPIDGains(kp,ki,kd);
 }
 
 void Vehicle::getVelocityPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  current_pid_gains.data[0] = speed_controller_->GetKp();
-  current_pid_gains.data[1] = speed_controller_->GetKi();
-  current_pid_gains.data[2] = speed_controller_->GetKd();
+	speed_controller_ -> getPIDGains(current_pid_gains.data[0],current_pid_gains.data[1],current_pid_gains.data[2]);
 }
 
 void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
 {
-  float kp = desired_pid_gains.data[0];
-  float ki = desired_pid_gains.data[1];
-  float kd = desired_pid_gains.data[2];
+	float kp = desired_pid_gains.data[0];
+	float ki = desired_pid_gains.data[1];
+	float kd = desired_pid_gains.data[2];
 
-  steering_controller_->SetTunings(kp, ki, kd);
-
+	steering_controller_->setPIDGains(kp, ki, kd);
 }
 
 void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
-  current_pid_gains.data[0] = steering_controller_->GetKp();
-  current_pid_gains.data[1] = steering_controller_->GetKi();
-  current_pid_gains.data[2] = steering_controller_->GetKd();
+	steering_controller_ -> getPIDGains(current_pid_gains.data[0],current_pid_gains.data[1],current_pid_gains.data[2]);
 }
 
 void Vehicle::getOperationalMode(int& current_operational_mode)
 {
-  current_operational_mode = operational_mode_;
+	current_operational_mode = operational_mode_;
 }
 
 void Vehicle::updateFiniteStateMachine(void)
@@ -275,7 +267,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   //estimated_state_.speed = measured_state_.speed / ABS_MAX_SPEED_METERS_SECOND;
   estimated_state_.speed = estimated_state_.speed / ABS_MAX_SPEED_METERS_SECOND;
 
-  if (abs(estimated_state_.speed) < 0.01) estimated_state_.speed = 0.0;
+  //if (abs(estimated_state_.speed) < 0.01) estimated_state_.speed = 0.0;
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
 
@@ -334,13 +326,13 @@ void Vehicle::calculateCommandOutputs(void)
 			  estimated_state_.speed = 0.0;
 
 			  speed_volts_pid_ = 0.0;
-			  speed_controller_->Reset();
+			  speed_controller_->resetPID();
 		  }else{
-			  speed_controller_->Compute();
+			  speed_controller_->computePID();
 		  }
 		  //*/
 		  //speed_controller_->Compute();
-		  steering_controller_->Compute();
+		  steering_controller_->computePID();
 	  }
       break;
 
@@ -351,13 +343,13 @@ void Vehicle::calculateCommandOutputs(void)
     	  desired_state_.speed = 0.0;
     	  estimated_state_.speed = 0.0;
 		  speed_volts_pid_ = 0.0;
-		  speed_controller_->Reset();
+		  speed_controller_->resetPID();
 	  }else{
-		  speed_controller_->Compute();
+		  speed_controller_->computePID();
 	  }
 	  //*/
       //speed_controller_->Compute();
-	  steering_controller_->Compute();
+	  steering_controller_->computePID();
       break;
 
     case EMERGENCY_STOP:
