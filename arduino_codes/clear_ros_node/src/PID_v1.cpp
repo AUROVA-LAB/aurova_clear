@@ -37,6 +37,8 @@ PID::PID(float* Input, float* Output, float* Setpoint,
     PID::SetTunings(Kp, Ki, Kd, POn);
 
     lastTime = micros()-SampleTime;
+    lastError = 0.0;
+    lastInput = 0.0;
 }
 
 /*Constructor (...)*********************************************************
@@ -65,15 +67,16 @@ bool PID::Compute()
    unsigned long int timeChange = (now - lastTime);
    //if(timeChange>=SampleTime)
    //{
-	  SetSampleTime((int)timeChange);
+	  //SetSampleTime((int)timeChange);
       /*Compute all the working error variables*/
       float input = *myInput;
       float error = *mySetpoint - input;
-      float dInput = (input - lastInput);
-      outputSum+= (ki * error);
+      //float dInput = (input - lastInput);
+      float dError = (error - lastError) / timeChange;
+      outputSum += ki * (error + lastError) * timeChange / 2.0;
 
       /*Add Proportional on Measurement, if P_ON_M is specified*/
-      if(!pOnE) outputSum-= kp * dInput;
+      //if(!pOnE) outputSum -= kp * dInput;
 
       if(outputSum > outMax) outputSum= outMax;
       else if(outputSum < outMin) outputSum= outMin;
@@ -84,7 +87,8 @@ bool PID::Compute()
       else output = 0;
 
       /*Compute Rest of PID Output*/
-      output += outputSum - kd * dInput;
+      //output += outputSum - kd * dInput;
+      output += outputSum + kd * dError;
 
 	    if(output > outMax) output = outMax;
       else if(output < outMin) output = outMin;
@@ -93,6 +97,7 @@ bool PID::Compute()
       /*Remember some variables for next time*/
       lastInput = input;
       lastTime = now;
+      lastError = error;
 	    return true;
    //}
    //else return false;
@@ -122,8 +127,8 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn)
 
    float SampleTimeInSec = ((float)SampleTime)/1000000;
    kp = Kp;
-   ki = Ki * SampleTimeInSec;
-   kd = Kd / SampleTimeInSec;
+   ki = Ki;// * SampleTimeInSec;
+   kd = Kd;// / SampleTimeInSec;
 
   if(controllerDirection ==REVERSE)
    {
@@ -143,6 +148,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd){
 /* SetSampleTime(...) *********************************************************
  * sets the period, in microseconds, at which the calculation is performed
  ******************************************************************************/
+/*
 void PID::SetSampleTime(int NewSampleTime)
 {
    if (NewSampleTime > 0)
@@ -154,6 +160,7 @@ void PID::SetSampleTime(int NewSampleTime)
       SampleTime = (unsigned long int)NewSampleTime;
    }
 }
+*/
 
 /* SetOutputLimits(...)****************************************************
  *     This function will be used far more often than SetInputLimits.  while

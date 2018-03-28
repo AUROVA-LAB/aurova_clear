@@ -84,7 +84,7 @@ class PID
                                   //   what these values are.  with pointers we'll just know.
 			  
 	unsigned long int lastTime;
-	float outputSum, lastInput;
+	float outputSum, lastInput, lastError;
 
 	unsigned long SampleTime;
 	float outMin, outMax;
