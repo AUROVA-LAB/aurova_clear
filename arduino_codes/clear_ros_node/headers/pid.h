@@ -21,6 +21,7 @@ private:
   // max - maximum value of manipulated variable
   // min - minimum value of manipulated variable
 
+  const float STD_LOOP_TIME = 0.001;
 
   float kp_, ki_, kd_;
 
@@ -42,6 +43,7 @@ private:
   float* output_;
   float* set_point_;
 
+  bool first_time_;
 
 public:
 
@@ -52,7 +54,7 @@ public:
    * Returns the manipulated variable given a setpoint, the current process value
    * and the time elapsed since previous control
    */
-  void computePID();
+  void computePID(float scale_input, float scale_setpoint, float scale_output);
 
   /*!
    * Set the maximum and minimum values for the output

@@ -30,8 +30,9 @@ PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float
 
 
 	dt_ = 0.1;
-	last_time_ = 0;
+	last_time_ = micros();
 	current_time_ = 0;
+	first_time_ = true;
 
 	max_ = 0.0;
 	min_ = 0.0;
@@ -64,45 +65,57 @@ void PID::resetPID(void)
 {
 	*output_ = 0.0;
 	dt_ = 0.1;
+	last_time_ = micros();
 	integral_ = 0.0;
 	derivative_ = 0.0;
+	proportional_ = 0.0;
+	error_ = 0.0;
+	previous_error_ = 0.0;
+	first_time_ = true;
 }
 
 
-void PID::computePID()
+void PID::computePID(float scale_input, float scale_setpoint, float scale_output)
 {
 
 	current_time_ = micros();
 	dt_ = (current_time_ - last_time_) / 1e6;
 
-	float input = *input_;
+	float input = *input_ ;
 	float set_point = *set_point_;
 	float output = 0.0;
 
-    // Restrict to max/min
-    if (input > max_)
-    	input = max_;
-    else if (input < min_)
-    	input = min_;
 
-
-	error_ = set_point - input;
+	error_ = (set_point / scale_setpoint) - (input/ scale_input);
 
 	proportional_ = kp_ * error_;
-	integral_ += ki_*(error_ + previous_error_)*dt_ / 2;
 	derivative_ = kd_*(error_ - previous_error_)  / dt_;
+
+	integral_ += ki_*(error_ + previous_error_)*dt_ / 2;
+
+
 
 	output = proportional_ + integral_ + derivative_;
 
 
-    // Restrict to max/min
+    // Saturate output value and integral
     if (output > max_)
+    {
     	output = max_;
+    	integral_ -= ki_*(error_ + previous_error_)*dt_ / 2;
+    }
     else if (output < min_)
+    {
     	output = min_;
+    	integral_ -= ki_*(error_ + previous_error_)*dt_ / 2;
+    }
+
+    // Scale output value
+    *output_ = output * scale_output;
+
+    //Serial.println(*output_);
 
 
-    *output_ = output;
 
     previous_error_ = error_;
     last_time_ = current_time_;

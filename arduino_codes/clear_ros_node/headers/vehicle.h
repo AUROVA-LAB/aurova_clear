@@ -54,6 +54,7 @@ private:
   RemoteControl remote_control_;
 
   int operational_mode_;
+  int last_operational_mode_;
   int error_code_;
 
   PIDPtr speed_controller_;
@@ -72,7 +73,7 @@ private:
 
   byte led_rgb_value_[3];
 
-  sdkfPtr speed_stimator_;
+  sdkfPtr speed_estimator_;
 
 
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -185,6 +186,9 @@ public:
    */
   void getErrorCode(int& requested_error_code);
   int  getErrorCode(void);
+
+
+  void resetVehicle();
 
 };
 

@@ -39,8 +39,9 @@ public:
 
 	void make_prediction(float volts, float& vel, float& covariance);
 	void make_correction(float measured_speed, float& vel, float& covariance);
+
+	void resetSDKF(void);
+
 };
-
-
 
 #endif /* HEADERS_SDKF_H_ */

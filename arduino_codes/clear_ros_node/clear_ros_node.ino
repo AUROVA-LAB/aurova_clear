@@ -156,14 +156,14 @@ ros::Publisher speed_volts_and_steering_pwm("speed_volts_and_steering_pwm", &spe
  * \brief write the status message with current values
  * This message should be updated if more status codes are added!
  */
-std_msgs::Int16MultiArray arduino_status;
+std_msgs::Float32MultiArray arduino_status;
 ros::Publisher arduino_status_publisher("arduino_status", &arduino_status);
 void sendArduinoStatus(void)
 {
-  arduino_status.data[0] = AckermannVehicle.getOperationalMode();
-  arduino_status.data[1] = AckermannVehicle.getErrorCode();
-  arduino_status.data[2] = warning_code;
-  arduino_status.data[3] = verbose_level;
+  arduino_status.data[0] = estimated_ackermann_state.drive.jerk;//desired_ackermann_state.drive.speed;//AckermannVehicle.getOperationalMode();
+  arduino_status.data[1] = estimated_ackermann_state.drive.speed;//ckermannVehicle.getErrorCode();
+  arduino_status.data[2] = speed_volts_and_steering_pwm_being_applicated.data[0]*1.4 / 4.9;//warning_code;
+  arduino_status.data[3] = estimated_ackermann_state.drive.acceleration;
 
   arduino_status_publisher.publish(&arduino_status);
 }
@@ -177,7 +177,7 @@ void sendArduinoStatus(void)
 void reserveDynamicMemory(void)
 {
   arduino_status.data_length = NUM_OF_ARDUINO_STATUS_VARIABLES;
-  arduino_status.data = (int *)malloc(sizeof(int) * NUM_OF_ARDUINO_STATUS_VARIABLES);
+  arduino_status.data = (float *)malloc(sizeof(float) * NUM_OF_ARDUINO_STATUS_VARIABLES);
 
   speed_volts_and_steering_pwm_being_applicated.data_length = NUM_OF_CONTROLLED_MOTORS;
   speed_volts_and_steering_pwm_being_applicated.data = (float *)malloc(sizeof(float) * NUM_OF_CONTROLLED_MOTORS);

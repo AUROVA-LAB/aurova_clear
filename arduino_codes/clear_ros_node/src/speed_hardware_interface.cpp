@@ -11,7 +11,7 @@
 #include "../headers/configuration_vehicle_hardware.h"
 
 
-const unsigned int  SAMPLING_TIME_SPEED = (1.0/SAMPLING_HERZ_SPEED)*1000; //ms
+const unsigned int  SAMPLING_TIME_SPEED = (1.0/SAMPLING_HERTZ_SPEED)*1000; //ms
 
 int digital = 0;
 
