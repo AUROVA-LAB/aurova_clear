@@ -8,10 +8,10 @@
 #ifndef HEADERS_SDKF_H_
 #define HEADERS_SDKF_H_
 
-class sdkf;
-typedef  sdkf* sdkfPtr;
+class SDKF;
+typedef  SDKF* SDKFPtr;
 
-class sdkf {
+class SDKF {
 private:
 	float vel_;
 	float covariance_;
@@ -31,11 +31,12 @@ private:
 	float innovation_;
 	float innovation_covariance_;
 
+	unsigned long int current_time_;
 	unsigned long int last_time_prediction_;
 	unsigned long int last_time_correction_;
 public:
-	sdkf(float A, float B, float P0, float Q, float R);
-	virtual ~sdkf();
+	SDKF(float A, float B, float P0, float Q, float R);
+	virtual ~SDKF();
 
 	void make_prediction(float volts, float& vel, float& covariance);
 	void make_correction(float measured_speed, float& vel, float& covariance);

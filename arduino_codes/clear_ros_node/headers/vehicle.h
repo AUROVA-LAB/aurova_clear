@@ -19,7 +19,7 @@
 #include "../headers/speed_hardware_interface.h"
 #include "../headers/steering_hardware_interface.h"
 #include "../headers/pid.h"
-#include "../headers/sdkf.h"
+#include "sdkf.h"
 
 struct State
 {
@@ -73,7 +73,7 @@ private:
 
   byte led_rgb_value_[3];
 
-  sdkfPtr speed_estimator_;
+  SDKFPtr speed_estimator_;
 
 
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)

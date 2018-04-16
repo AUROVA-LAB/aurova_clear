@@ -11,7 +11,7 @@
 #include "../headers/arduino_ros_interface.h"
 #include "Arduino.h"
 
-PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float kd)
+PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float kd) // @suppress("Class members should be properly initialized")
 {
 	kp_ = kp;
 	ki_ = ki;

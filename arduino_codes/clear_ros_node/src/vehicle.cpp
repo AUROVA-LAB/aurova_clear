@@ -102,7 +102,7 @@ Vehicle::Vehicle()
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD);
   speed_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  speed_estimator_ = new sdkf(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
+  speed_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
   steering_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);

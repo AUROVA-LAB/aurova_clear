@@ -322,7 +322,10 @@ void sendOutputsToROS(void)
  */
 bool communicate_with_ROS = false;
 
-unsigned long lastTime_2 = micros();
+unsigned long int last_time = micros();
+unsigned long int now = 0;
+unsigned long int time_change = 0;
+
 void loop()
 {
   wdt_reset();
@@ -340,11 +343,18 @@ void loop()
 
   AckermannVehicle.updateFiniteStateMachine();
 
-  unsigned long int now_2 = micros();
-  unsigned long int timeChange_2 = (now_2 - lastTime_2);
+  now = micros();
+
+	if(now > last_time)
+		time_change = now - last_time;
+	else
+		time_change = 4294967295 - last_time;
+
   AckermannVehicle.calculateCommandOutputs();
-  lastTime_2 = now_2;
-  desired_ackermann_state_echo.drive.jerk = (float)timeChange_2;
+
+  last_time = now;
+
+  desired_ackermann_state_echo.drive.jerk = (float)time_change;
 
   if(AckermannVehicle.getOperationalMode() != CALIBRATION)
 	  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);

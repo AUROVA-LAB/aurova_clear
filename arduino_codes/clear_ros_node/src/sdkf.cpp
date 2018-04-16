@@ -5,12 +5,12 @@
  *      Author: idelpino
  */
 
-#include "../headers/sdkf.h"
 #include "../headers/configuration_vehicle_hardware.h"
 #include "Arduino.h"
+#include "../headers/sdkf.h"
 
 
-sdkf::sdkf(float A, float B, float P0, float Q, float R) {
+SDKF::SDKF(float A, float B, float P0, float Q, float R) {
 	// TODO Auto-generated constructor stub
 	A_ = A;
 	B_ = B;
@@ -32,15 +32,16 @@ sdkf::sdkf(float A, float B, float P0, float Q, float R) {
 	innovation_ = 0.0;
 	innovation_covariance_ = 0.0;
 
+	current_time_ = 0;
 	last_time_prediction_ = micros();
-	last_time_correction_ = micros();
+	last_time_correction_ = last_time_prediction_;
 }
 
-sdkf::~sdkf() {
+SDKF::~SDKF() {
 	// TODO Auto-generated destructor stub
 }
 
-void sdkf::resetSDKF(void)
+void SDKF::resetSDKF(void)
 {
 	vel_ = 0.0;
 	vel_k_minus_one_ = 0.0;
@@ -56,7 +57,7 @@ void sdkf::resetSDKF(void)
 	innovation_covariance_ = 0.0;
 
 	last_time_prediction_ = micros();
-	last_time_correction_ = micros();
+	last_time_correction_ = last_time_prediction_;
 }
 
 float outlierRejection(float current_vel, float last_vel, double dt)
@@ -87,17 +88,25 @@ float outlierRejection(float current_vel, float last_vel, double dt)
 	return(filtered_vel);
 }
 
-void sdkf::make_prediction(float volts, float& vel, float& covariance)
+void SDKF::make_prediction(float volts, float& vel, float& covariance)
 {
-	unsigned long int now = micros();
-	unsigned long int timeChange = (now - last_time_prediction_);
-	last_time_prediction_ = now;
-
+	unsigned long int time_change;
 	double freq = 1000.0;
-
-	if(timeChange > 0) freq = 1000000.0 / (double)(timeChange);
-
 	float volts_diff = (volts - volts_k_minus_one_);
+
+	current_time_ = micros();
+
+	if(current_time_ > last_time_prediction_)
+		time_change = current_time_ - last_time_prediction_;
+	else
+		time_change = 4294967295 - last_time_prediction_;
+
+	last_time_prediction_ = current_time_;
+
+
+
+	if(time_change > 0) freq = 1000000.0 / (double)(time_change);
+
 
 	//Saturate the max accel
 	if(SATURATE_ACCEL_MAX && B_ * volts_diff * freq > ABS_MAX_ACCEL)
@@ -120,18 +129,22 @@ void sdkf::make_prediction(float volts, float& vel, float& covariance)
 
 }
 
-void sdkf::make_correction(float measured_speed, float& vel, float& covariance)
+void SDKF::make_correction(float measured_speed, float& vel, float& covariance)
 {
-	unsigned long int now = micros();
-	unsigned long int timeChange = (now - last_time_correction_);
-	last_time_correction_ = now;
-
+	unsigned long int time_change;
 	double freq = 1000.0;
-
-	if(timeChange > 0) freq = 1000000.0 / (timeChange);
-
 	double std_dev = sqrt(covariance);
 
+	current_time_ = micros();
+
+	if(current_time_ > last_time_correction_)
+		time_change = current_time_ - last_time_correction_;
+	else
+		time_change = 4294967295 - last_time_correction_;
+
+	last_time_correction_ = current_time_;
+
+	if(time_change > 0) freq = 1000000.0 / (time_change);
 
 	innovation_ = measured_speed - vel_;
 
