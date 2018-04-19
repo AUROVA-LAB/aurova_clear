@@ -16,6 +16,7 @@ const float MIN_CURVATURE_RADIUS_METERS = 4.0;
 
 const float LENGTH_METERS = 1.672;
 const float WIDTH_METERS = 0.797;
+const float WIDTH_CENTER_WHEELS_METERS = 0.62;
 
 const float REAR_WHEEL_DIAM_METERS = 0.395 * 0.92; // Manufacturer 0.406
 const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305

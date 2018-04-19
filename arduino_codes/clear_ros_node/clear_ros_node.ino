@@ -16,6 +16,7 @@
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int16MultiArray.h"
+#include "nav_msgs/Odometry.h"
 #include "Arduino.h"
 #include <avr/wdt.h>
 #include <Wire.h> // I2C library
@@ -85,6 +86,12 @@ ros::Publisher required_ackermann_publisher("echo_desired_ackermann_state", &des
 ackermann_msgs::AckermannDriveStamped estimated_ackermann_state;
 ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
 
+
+/*!
+ * Publisher to communicate the odometry calculate through estimated_ackermann_state
+ */
+nav_msgs::Odometry odometry;
+ros::Publisher odometry_publisher("clear_blue/odom", &odometry);
 
 
 
@@ -311,6 +318,7 @@ void sendOutputsToROS(void)
     sendArduinoStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
     speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
+    odometry_publisher.publish(&odometry);
   }
 }
 
@@ -334,7 +342,7 @@ void loop()
 
   if (communicate_with_ROS) receiveROSInputs();
 
-  AckermannVehicle.updateState(estimated_ackermann_state);
+  AckermannVehicle.updateState(estimated_ackermann_state, odometry);
 
   AckermannVehicle.readOnBoardUserInterface();
 
@@ -345,10 +353,10 @@ void loop()
 
   now = micros();
 
-	if(now > last_time)
-		time_change = now - last_time;
-	else
-		time_change = 4294967295 - last_time;
+  if(now > last_time)
+	time_change = now - last_time;
+  else
+	time_change = 4294967295 - last_time;
 
   AckermannVehicle.calculateCommandOutputs();
 

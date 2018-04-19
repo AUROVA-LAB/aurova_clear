@@ -20,6 +20,7 @@
 #include "../headers/steering_hardware_interface.h"
 #include "../headers/pid.h"
 #include "sdkf.h"
+#include "nav_msgs/Odometry.h"
 
 struct State
 {
@@ -91,7 +92,8 @@ public:
    * and calculates all the state variables: speed, acceleration,
    * jerk, steering angle and steering angle velocity
    */
-  void updateState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state);
+  void updateState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state,
+		           nav_msgs::Odometry& odometry);
 
   /*!
    * Reads the buttons and switches wired in the own vehicle, that affects

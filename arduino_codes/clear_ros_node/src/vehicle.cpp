@@ -257,7 +257,8 @@ int Vehicle::getOperationalMode(void)
   return (operational_mode_);
 }
 
-void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state)
+void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
+		                  nav_msgs::Odometry& odometry)
 {
   // We always make the prediction step
   float covariance;
@@ -285,7 +286,13 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	float direction = 1.0;
 	if(!speed_actuator_->getFlagForward()) direction = -1.0;
 
-	measured_state_.speed = speed_measures[0]*METERS_PER_PULSE*direction;
+	float speed_left_rear_wheel = speed_measures[0]*METERS_PER_PULSE*direction;
+	float steering_radians      = measured_state_.steering_angle * M_PI / 180.0;
+	float center_wheel_factor   = WHEELBASE_METERS / (WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS/2.0)*tan(steering_radians));
+
+	float speed_virtual_central_wheel = speed_left_rear_wheel * center_wheel_factor;
+
+	measured_state_.speed = speed_virtual_central_wheel;
 	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
 
@@ -303,8 +310,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	}
   }
 
-  if(!USE_KALMAN_FILTER)
-    estimated_state_.speed = measured_state_.speed;
+  if(!USE_KALMAN_FILTER) estimated_state_.speed = measured_state_.speed;
 
   //estimated_state_.acceleration = measured_state_.acceleration
   //estimated_state_.jerk = measured_state_.jerk;
@@ -315,6 +321,16 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_state_.steering_angle = measured_state_.steering_angle;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
+  //Odometry calculation
+  float steering_radians = measured_state_.steering_angle * M_PI / 180.0;
+  float angular_speed    = estimated_state_.speed * tan(steering_radians) / WHEELBASE_METERS;
+  odometry.twist.twist.linear.x  = estimated_state_.speed;
+  odometry.twist.twist.angular.z = angular_speed;
+  odometry.twist.covariance[0] = covariance;
+  odometry.twist.covariance[35] = covariance * tan(steering_radians) / WHEELBASE_METERS;
+
+  ///////////////////////////////////////////////////////////////
+  // Passing to messages
 
   estimated_ackermann_state.drive.speed = estimated_state_.speed;
   estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
