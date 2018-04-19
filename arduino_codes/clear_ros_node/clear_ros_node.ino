@@ -91,7 +91,7 @@ ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estim
  * Publisher to communicate the odometry calculate through estimated_ackermann_state
  */
 nav_msgs::Odometry odometry;
-ros::Publisher odometry_publisher("clear_blue/odom", &odometry);
+ros::Publisher odometry_publisher("odom", &odometry);
 
 
 
@@ -243,6 +243,8 @@ void setup()
   nh.advertise(speed_volts_and_steering_pwm);
 
   nh.advertise(estimated_ackermann_publisher);
+
+  nh.advertise(odometry_publisher);
 
   wdt_enable(WDTO_500MS);
 }

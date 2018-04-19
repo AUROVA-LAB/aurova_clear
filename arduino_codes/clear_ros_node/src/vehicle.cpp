@@ -151,7 +151,6 @@ bool Vehicle::componentsCalibration()
 		return true;
 	else
 		return false;
-	return true;
 }
 
 void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
@@ -239,10 +238,12 @@ void Vehicle::updateFiniteStateMachine(void)
   	  led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 255;
   	  led_rgb_value_[2] = 0;
-	  if( componentsCalibration() )
+
+  	  if( componentsCalibration() )
 	  {
 	      operational_mode_ = RESET;
 	  }
+
 	  break;
 
   }
@@ -322,6 +323,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
   //Odometry calculation
+
   float steering_radians = measured_state_.steering_angle * M_PI / 180.0;
   float angular_speed    = estimated_state_.speed * tan(steering_radians) / WHEELBASE_METERS;
   odometry.twist.twist.linear.x  = estimated_state_.speed;

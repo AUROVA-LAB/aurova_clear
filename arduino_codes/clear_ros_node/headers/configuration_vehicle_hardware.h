@@ -53,7 +53,7 @@ const int TOLERANCE_PULSES_FIND_ZERO_POS = 20;
 
 
 //------------SPEED-----------//
-const float ABS_MAX_SPEED_METERS_SECOND = 1.8; // aprox 5 Km/h
+const float ABS_MAX_SPEED_METERS_SECOND = 1.3; // aprox 5 Km/h
 const float ABS_MAX_ACCEL = 10; // m/s²
 
 const float SPEED_ENCODER_PULSES_PER_REV = 24;
