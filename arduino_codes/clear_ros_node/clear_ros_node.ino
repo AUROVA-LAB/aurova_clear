@@ -87,13 +87,14 @@ ackermann_msgs::AckermannDriveStamped estimated_ackermann_state;
 ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
 
 
-/*!
+/*TODO
  * Publisher to communicate the odometry calculate through estimated_ackermann_state
- */
+
 nav_msgs::Odometry odometry;
 ros::Publisher odometry_publisher("odom", &odometry);
+*/
 
-
+nav_msgs::Odometry odometry;
 
 /*! \brief CallBack to read the velocity control PID gains (kp, ki, and kd) coming from the on-board PC
  *
@@ -244,7 +245,7 @@ void setup()
 
   nh.advertise(estimated_ackermann_publisher);
 
-  nh.advertise(odometry_publisher);
+  //nh.advertise(odometry_publisher);
 
   wdt_enable(WDTO_500MS);
 }
@@ -320,7 +321,7 @@ void sendOutputsToROS(void)
     sendArduinoStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
     speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
-    odometry_publisher.publish(&odometry);
+    //odometry_publisher.publish(&odometry);
   }
 }
 

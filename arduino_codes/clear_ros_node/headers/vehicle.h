@@ -190,7 +190,7 @@ public:
   int  getErrorCode(void);
 
 
-  void resetVehicle();
+  void resetSpeed();
 
 };
 

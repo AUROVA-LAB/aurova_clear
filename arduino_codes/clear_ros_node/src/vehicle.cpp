@@ -107,6 +107,7 @@ Vehicle::Vehicle()
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
   steering_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
+  //TODO: steering_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
 
   led_rgb_value_[0] = 0;
   led_rgb_value_[1] = 0;
@@ -190,7 +191,8 @@ void Vehicle::updateFiniteStateMachine(void)
 {
   if(operational_mode_ != last_operational_mode_)
   {
-    resetVehicle();
+    resetSpeed();
+    //TODO resetSteering
     last_operational_mode_ = operational_mode_;
   }
 
@@ -297,6 +299,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
 
+	// To create outliers
 	/*count++;
 	if(count > 20)
 	{
@@ -392,7 +395,7 @@ void Vehicle::calculateCommandOutputs(void)
 			  estimated_state_.speed = 0.0;
 
 			  speed_volts_pid_ = 0.0;
-			  resetVehicle();
+			  resetSpeed();
 		  }
 		  else
 		  {
@@ -410,7 +413,7 @@ void Vehicle::calculateCommandOutputs(void)
     	  estimated_state_.speed = 0.0;
 
 		  speed_volts_pid_ = 0.0;
-		  resetVehicle();
+		  resetSpeed();
 	  }else{
 		  speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_VOLTS);
 	  }
@@ -564,9 +567,16 @@ int Vehicle::getErrorCode(void)
   return (error_code_);
 }
 
-void Vehicle::resetVehicle()
+void Vehicle::resetSpeed()
 {
 	speed_controller_->resetPID();
-	steering_controller_->resetPID();
 	speed_estimator_->resetSDKF();
 }
+
+/*TODO
+void Vehicle::resetSpeed()
+{
+	steering_controller_->resetPID();
+	steering_estimator_->resetSDKF();
+}
+*/
