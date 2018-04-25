@@ -45,6 +45,7 @@ typedef Vehicle* VehiclePtr;
 class Vehicle
 {
 private:
+  State covariance_state_;
   State estimated_state_;
   State measured_state_;
   State desired_state_;
@@ -93,7 +94,7 @@ public:
    * jerk, steering angle and steering angle velocity
    */
   void updateState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state,
-		           nav_msgs::Odometry& odometry);
+                   ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state);
 
   /*!
    * Reads the buttons and switches wired in the own vehicle, that affects

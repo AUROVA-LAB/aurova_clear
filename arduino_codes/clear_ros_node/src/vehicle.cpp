@@ -261,14 +261,14 @@ int Vehicle::getOperationalMode(void)
 }
 
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
-		                  nav_msgs::Odometry& odometry)
+		                  ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
   // We always make the prediction step
-  float covariance;
+  float covariance_speed;
 
   if(USE_KALMAN_FILTER && prediction_kalman_filter > time_to_predict)
   {
-    speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
+    speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance_speed);
     prediction_kalman_filter = 0;
   }
 
@@ -310,33 +310,21 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	if(USE_KALMAN_FILTER)
 	{
 	  //speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
-	  speed_estimator_->make_correction(measured_state_.speed, estimated_state_.speed, covariance);
+	  speed_estimator_->make_correction(measured_state_.speed, estimated_state_.speed, covariance_speed);
 	}
   }
 
   if(!USE_KALMAN_FILTER) estimated_state_.speed = measured_state_.speed;
 
-  //estimated_state_.acceleration = measured_state_.acceleration
+  //estimated_state_.acceleration = measured_state_.acceleration;
   //estimated_state_.jerk = measured_state_.jerk;
-  ///////////////////////////////////////////////
-  estimated_state_.acceleration = measured_state_.speed;
-  estimated_state_.jerk = desired_state_.speed;
 
   estimated_state_.steering_angle = measured_state_.steering_angle;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
-  //Odometry calculation
-
-  float steering_radians = measured_state_.steering_angle * M_PI / 180.0;
-  float angular_speed    = estimated_state_.speed * tan(steering_radians) / WHEELBASE_METERS;
-  odometry.twist.twist.linear.x  = estimated_state_.speed;
-  odometry.twist.twist.angular.z = angular_speed;
-  odometry.twist.covariance[0] = covariance;
-  odometry.twist.covariance[35] = covariance * tan(steering_radians) / WHEELBASE_METERS;
 
   ///////////////////////////////////////////////////////////////
   // Passing to messages
-
   estimated_ackermann_state.drive.speed = estimated_state_.speed;
   estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
   estimated_ackermann_state.drive.jerk = estimated_state_.jerk;
@@ -344,7 +332,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_ackermann_state.drive.steering_angle = estimated_state_.steering_angle;
   estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
 
-
+  covariance_ackermann_state.drive.speed = covariance_speed;
 }
 
 void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
@@ -368,7 +356,7 @@ void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ack
 
     desired_ackermann_state_echo.drive.speed = desired_state_.speed;
     desired_ackermann_state_echo.drive.acceleration = desired_state_.acceleration;
-    //desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
+    desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
 void Vehicle::calculateCommandOutputs(void)

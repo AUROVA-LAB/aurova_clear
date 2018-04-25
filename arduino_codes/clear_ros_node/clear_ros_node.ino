@@ -16,7 +16,6 @@
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int16MultiArray.h"
-#include "nav_msgs/Odometry.h"
 #include "Arduino.h"
 #include <avr/wdt.h>
 #include <Wire.h> // I2C library
@@ -74,27 +73,23 @@ void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desire
 }
 ros::Subscriber<ackermann_msgs::AckermannDriveStamped> ackermann_subscriber("desired_ackermann_state",
                                                                             &desiredAckermannStateCB);
-
 ros::Publisher required_ackermann_publisher("echo_desired_ackermann_state", &desired_ackermann_state_echo);
 
 
 
 
 /*!
- * Publisher to communicate the ackermann state estimated with the kalman filters, the sensor hall and the encoder
+ * Publisher to communicate the ackermann state estimated with the kalman filters, the sensor hall and the encoders
  */
 ackermann_msgs::AckermannDriveStamped estimated_ackermann_state;
 ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
 
+/*!
+ * Publisher to communicate the covariance of ackermann state estimated with the kalman filters, the sensor hall and the encoders
+ */
+ackermann_msgs::AckermannDriveStamped covariance_ackermann_state;
+ros::Publisher covariance_ackermann_publisher("covariance_ackermann_state", &covariance_ackermann_state);
 
-/*TODO
- * Publisher to communicate the odometry calculate through estimated_ackermann_state
-
-nav_msgs::Odometry odometry;
-ros::Publisher odometry_publisher("odom", &odometry);
-*/
-
-nav_msgs::Odometry odometry;
 
 /*! \brief CallBack to read the velocity control PID gains (kp, ki, and kd) coming from the on-board PC
  *
@@ -244,8 +239,7 @@ void setup()
   nh.advertise(speed_volts_and_steering_pwm);
 
   nh.advertise(estimated_ackermann_publisher);
-
-  //nh.advertise(odometry_publisher);
+  nh.advertise(covariance_ackermann_publisher);
 
   wdt_enable(WDTO_500MS);
 }
@@ -320,8 +314,8 @@ void sendOutputsToROS(void)
   {
     sendArduinoStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
+    covariance_ackermann_publisher.publish(&covariance_ackermann_state);
     speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
-    //odometry_publisher.publish(&odometry);
   }
 }
 
@@ -345,7 +339,7 @@ void loop()
 
   if (communicate_with_ROS) receiveROSInputs();
 
-  AckermannVehicle.updateState(estimated_ackermann_state, odometry);
+  AckermannVehicle.updateState(estimated_ackermann_state, covariance_ackermann_state);
 
   AckermannVehicle.readOnBoardUserInterface();
 
@@ -364,8 +358,6 @@ void loop()
   AckermannVehicle.calculateCommandOutputs();
 
   last_time = now;
-
-  desired_ackermann_state_echo.drive.jerk = (float)time_change;
 
   if(AckermannVehicle.getOperationalMode() != CALIBRATION)
 	  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
