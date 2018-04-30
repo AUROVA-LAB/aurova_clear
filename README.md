@@ -37,7 +37,7 @@ Install Arduino software: sudo apt-get install arduino
 
 Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
 
-Copy this folder to PROJECT_LOC/arduinoPlugin/packages/arduino if you do not have it: https://drive.google.com/file/d/1eAQtIZ6uP7VtDr6xbe-4p2OZSWTsh-2O/view
+Copy this folder to PROJECT_LOC/arduinoPlugin/packages/arduino if you have not it: https://drive.google.com/file/d/1eAQtIZ6uP7VtDr6xbe-4p2OZSWTsh-2O/view
 
 Download and install ackermann messages: https://github.com/ros-drivers/ackermann_msgs
 
