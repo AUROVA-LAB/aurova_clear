@@ -33,7 +33,7 @@ In addition, every _desired_ topic produces an _echo_ topic to check communicati
 
 ### Setup instructions
 
-Install Arduino software: sudo apt-get install arduino
+Install Arduino software: "sudo apt-get install arduino"
 
 Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
 
@@ -41,7 +41,7 @@ Copy this folder to PROJECT_LOC/arduinoPlugin/packages/arduino if you have not i
 
 Download and install ackermann messages: https://github.com/ros-drivers/ackermann_msgs
 
-Download and install rosserial: https://github.com/ros-drivers/rosserial
+Download and install rosserial: https://github.com/ros-drivers/rosserial or "sudo apt-get install ros-kinatic-rosserial-arduino"
 
 Clone CLEAR repo in your catkin workspace:
 
