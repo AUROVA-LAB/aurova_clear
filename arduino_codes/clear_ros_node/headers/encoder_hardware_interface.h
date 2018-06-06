@@ -34,7 +34,7 @@ public:
 
     byte encoderReset(int encNum);
 
-    byte encoderWrite(byte encNum, long count);
+    byte encoderWrite(int encNum, long count);
 
 };
 

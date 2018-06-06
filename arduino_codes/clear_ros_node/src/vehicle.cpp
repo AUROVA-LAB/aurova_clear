@@ -203,14 +203,17 @@ void Vehicle::updateFiniteStateMachine(void)
     case RESET:
 
       digitalWrite(ENABLE_MOTORS,LOW);
-
+/*
       led_rgb_value_[0] = 0;
 	  led_rgb_value_[1] = 0;
 	  led_rgb_value_[2] = 0;
       if ( desired_steering_state_reached_ )
       {
-        operational_mode_ = REMOTE_CONTROL;
+        //operational_mode_ = REMOTE_CONTROL;
       }
+      */
+
+      operational_mode_ = CALIBRATION;
       break;
 
     case EMERGENCY_STOP:

@@ -106,7 +106,7 @@ byte EncoderHardwareInterface::encoderReset(int encNum)
 //   3 = Received NACK on transmit of data
 //   4 = Other error duting I2C communication
 //   5 = Wrong encoder number in parameter
-byte EncoderHardwareInterface::encoderWrite(byte encNum, long pulses)
+byte EncoderHardwareInterface::encoderWrite(int encNum, long pulses)
 {
   // Pointer to the buffer for sending
   // The pointer to a long integer allows to store a long integer into the buffer of bytes
@@ -115,8 +115,8 @@ byte EncoderHardwareInterface::encoderWrite(byte encNum, long pulses)
   byte retCode; // Return code
 
   // Validate the number of encoder
-  if ((encNum < 1) || (encNum > 2))
-    return 5;
+  //if ((encNum < 1) || (encNum > 2))
+  //  return 5;
 
   // Store the given pulses in the send buffer as a long integer
   *pBuffer = pulses;
@@ -124,7 +124,8 @@ byte EncoderHardwareInterface::encoderWrite(byte encNum, long pulses)
   // Send a command to the slave: 5 = Write encoder 1,  6 = Write encoder 2
   // After the command, the bytes of the pulses are sent
   Wire.beginTransmission(I2C_SLAVEADDRTEENSY);
-  Wire.write((encNum==1)? 5:6);
+  //Wire.write((encNum==1)? 5:6);
+  Wire.write(encNum);
   Wire.write(I2C_sendBuffer_, I2C_sizeFloat_);
   retCode = Wire.endTransmission();
 

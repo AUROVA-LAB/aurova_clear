@@ -30,6 +30,9 @@ bool error_encoder_count = false;
 bool error_limit_switch = false;
 bool error_direction = false;
 
+//bool recalibration_flag = false;
+//bool left_limit_flag = false;
+//bool right_limit_flag = false;
 
 SteeringHardwareInterface::SteeringHardwareInterface()
 
@@ -40,6 +43,8 @@ SteeringHardwareInterface::SteeringHardwareInterface()
 	pin_limit_switch_left_ = PIN_LSL;
 	pin_limit_switch_right_ = PIN_LSR;
 	pin_int_limit_switch_ = PIN_INT_LS;
+
+	//recalibration_flag_ = false;
 
 	steering_encoder_ = new EncoderHardwareInterface();
 
@@ -144,10 +149,47 @@ void SteeringHardwareInterface::doLimitSwitch(void)
 	digitalWrite(PIN_INA,LOW);
 	digitalWrite(PIN_INB,LOW);
 	analogWrite(PIN_PWM,0);
+
+	/*
+	recalibration_flag = true;
+
+	if(digitalRead(PIN_LSR) == LOW) //Inverse logic for safety
+	{
+		right_limit_flag = true;
+		left_limit_flag = false;
+	}
+
+	if(digitalRead(PIN_LSL) == LOW) //Inverse logic for safety
+	{
+		right_limit_flag = false;
+		left_limit_flag = true;
+	}
+	*/
+
 }
 
 float* SteeringHardwareInterface::getSteeringMeasures(void)
 {
+	/*
+	if(recalibration_flag)
+	{
+		recalibration_flag = false;
+		//Re-calibrate the steering angle since a limit switch has been activated
+		if(right_limit_flag)
+		{
+			//The right limit switch is in negative angle, so we put negative number
+			//steering_encoder_->encoderWrite(11, (-1*ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG));///2.0);
+			Serial.println("Right LS");
+			steering_encoder_->encoderRead(0,measures_[0]);
+			Serial.println(measures_[0]);
+		}else{
+			//steering_encoder_->encoderWrite(11, ABS_MAX_LEFT_ANGLE_DEG/PULSES_TO_DEG);
+			Serial.println("Left LS");
+			steering_encoder_->encoderRead(0,measures_[0]);
+			Serial.println(measures_[0]);
+		}
+	}
+	*/
 	steering_encoder_->encoderRead(0,measures_[0]); //pulses
 	steering_encoder_->encoderRead(1,measures_[1]); //pulses/s
 
