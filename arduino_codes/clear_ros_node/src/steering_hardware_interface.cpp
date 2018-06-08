@@ -30,9 +30,8 @@ bool error_encoder_count = false;
 bool error_limit_switch = false;
 bool error_direction = false;
 
-//bool recalibration_flag = false;
-//bool left_limit_flag = false;
-//bool right_limit_flag = false;
+bool left_limit_flag = false;
+bool right_limit_flag = false;
 
 SteeringHardwareInterface::SteeringHardwareInterface()
 
@@ -43,8 +42,6 @@ SteeringHardwareInterface::SteeringHardwareInterface()
 	pin_limit_switch_left_ = PIN_LSL;
 	pin_limit_switch_right_ = PIN_LSR;
 	pin_int_limit_switch_ = PIN_INT_LS;
-
-	//recalibration_flag_ = false;
 
 	steering_encoder_ = new EncoderHardwareInterface();
 
@@ -150,9 +147,6 @@ void SteeringHardwareInterface::doLimitSwitch(void)
 	digitalWrite(PIN_INB,LOW);
 	analogWrite(PIN_PWM,0);
 
-	/*
-	recalibration_flag = true;
-
 	if(digitalRead(PIN_LSR) == LOW) //Inverse logic for safety
 	{
 		right_limit_flag = true;
@@ -164,8 +158,6 @@ void SteeringHardwareInterface::doLimitSwitch(void)
 		right_limit_flag = false;
 		left_limit_flag = true;
 	}
-	*/
-
 }
 
 float* SteeringHardwareInterface::getSteeringMeasures(void)
@@ -216,4 +208,18 @@ int SteeringHardwareInterface::getSteeringError(void)
 	return error_code;
 }
 
-
+int SteeringHardwareInterface::readLimitSwitches(void)
+{
+	int result = 0;
+	if(left_limit_flag)
+	{
+		left_limit_flag = false;
+		result = 1;
+	}
+	if(right_limit_flag)
+	{
+		right_limit_flag = false;
+		result = 2;
+	}
+	return(result);
+}

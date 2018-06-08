@@ -72,7 +72,7 @@ public:
      */
     int getSteeringError(void);
 
-
+    int readLimitSwitches(void);
 
 };
 

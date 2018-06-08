@@ -51,9 +51,9 @@ public:
 
 	void predict(float u_theta, float u_v);
 
-	void correctHall(float hall_pulses);
+	void correctHall(float observed_speed);
 
-	void correctEnc(float steering_pulses);
+	void correctEnc(float observed_steering_vel);
 
 	void correctLs(float observed_theta);
 

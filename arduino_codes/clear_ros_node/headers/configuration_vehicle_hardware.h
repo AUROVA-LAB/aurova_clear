@@ -32,8 +32,8 @@ const float  SAMPLING_HERTZ_SPEED = 1.0; //Hz
 const float  SAMPLING_HERTZ_STEERING = 10.0; //Hz
 
 const float SENSOR_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
-const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = 0.0044 * 2.0;
-const float STEERING_RESOLUTION_DEG_PER_PULSE = 0.0044;
+const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = 0.005265 * 2.0;//0.0044 * 2.0;
+const float STEERING_RESOLUTION_DEG_PER_PULSE = 0.005265;//0.0044;
 
 //------------STEERING-----------//
 const float ABS_MAX_RIGHT_ANGLE_DEG = 26.0; //Experimentally measured

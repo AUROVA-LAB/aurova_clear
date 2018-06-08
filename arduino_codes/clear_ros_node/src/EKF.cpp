@@ -18,7 +18,7 @@ EKF::EKF(void)
 	X[2][0] = 0.0; //Speed of the platform
 
 	//Covariance matrix
-	P[0][0] = 30.0 * 30.0; //As the maximum steering angles are smaller than 30 deg
+	P[0][0] = 3.0 * 3.0; //As the maximum steering angles are smaller than 30 deg
 	                       //this initialization means that we don not have information about
 	                       //where our steering is
 	P[0][1] = 0.0; //The covariances are initialized to zero
@@ -78,10 +78,10 @@ EKF::EKF(void)
 	H_hall[0][1] = 0.0; //This value is zero
 	H_hall[0][2] = 0.0; //This value depensds on delta_t --> computed online
 
-	//H_enc must be calculated online, using the delta_t
-	H_enc[0][0] = 0.0; //This value is zero
-	H_enc[0][1] = 0.0; //This value depensds on delta_t --> computed online
-	H_enc[0][2] = 0.0; //This value is zero
+	//H_enc is independent, so it does not need to be recalculated
+	H_enc[0][0] = 0.0;
+	H_enc[0][1] = 1.0;
+	H_enc[0][2] = 0.0;
 
 	//H_ls is independent, so it does not need to be recalculated
 	H_ls[0][0] = 1.0;
@@ -142,7 +142,7 @@ void EKF::predict(float u_theta, float u_v)
 	Matrix.Add((float*)P, (float*)additive_prediction_noise, 3, 3, (float*)P);
 }
 
-void EKF::correctHall(float hall_pulses)
+void EKF::correctHall(float observed_speed)
 {
 	unsigned long int time_change;
 	current_time_ = micros();
@@ -157,27 +157,24 @@ void EKF::correctHall(float hall_pulses)
 	float delta_t = (float)(time_change) / 1000000.0;
 
 	// Update the H matrix
-	H_hall[0][0] = -1 * (X[2][0] *SPEED_ENCODER_PULSES_PER_REV * delta_t * WIDTH_CENTER_WHEELS_METERS)
-			               / (2*M_PI*REAR_WHEEL_DIAM_METERS * WHEELBASE_METERS * cos(X[0][0]) * cos(X[0][0]));
-	H_hall[0][1] = 0.0; //This value is zero
-	H_hall[0][2] = ((SPEED_ENCODER_PULSES_PER_REV*delta_t*(WHEELBASE_METERS - WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0))
-                       /(M_PI * REAR_WHEEL_DIAM_METERS * WHEELBASE_METERS));
+	H_hall[0][0] = (2.0 * X[2][0] * WHEELBASE_METERS * WIDTH_CENTER_WHEELS_METERS)
+			       / ( (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]) - 2*WHEELBASE_METERS*cos(X[0][0]))
+			    		   * (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]) - 2*WHEELBASE_METERS*cos(X[0][0])) );
+	H_hall[0][1] = 0.0;
+	H_hall[0][2] = WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0));
 
 	//Innovation
-	y = hall_pulses;
-	z = y - X[2][0]*((SPEED_ENCODER_PULSES_PER_REV*delta_t*(WHEELBASE_METERS - WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0))
-			            /(M_PI * REAR_WHEEL_DIAM_METERS * WHEELBASE_METERS));
+	y = observed_speed * WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0));
+	z = y - X[2][0];
 
 	//Innovation covariance
 	float aux[1][3];
 	float H_hall_transposed[3][1];
 	Matrix.Multiply((float*)H_hall, (float*)P, 1, 3, 3, (float*)aux);
 	Matrix.Transpose((float*)H_hall, 1, 3, (float*) H_hall_transposed);
-	//Matrix.Multiply((float*)aux, (float*)H_hall_transposed, 1, 3, 1, (float*)Z);
 	Matrix.Multiply((float*)aux, (float*)H_hall_transposed, 1, 3, 1, &Z);
 
-
-	Z = Z + R_hall;
+	Z = Z + R_hall / delta_t;
 
 	Matrix.Multiply((float*)P, (float*)H_hall_transposed, 3, 3, 1, (float*)K);
 	K[0][0] = K[0][0] / Z;
@@ -201,7 +198,7 @@ void EKF::correctHall(float hall_pulses)
 }
 
 
-void EKF::correctEnc(float steering_pulses)
+void EKF::correctEnc(float observed_steering_vel)
 {
 	unsigned long int time_change;
 	current_time_ = micros();
@@ -215,11 +212,9 @@ void EKF::correctEnc(float steering_pulses)
 
 	float delta_t = (float)(time_change) / 1000000.0;
 
-	// Update the H matrix
-	H_enc[0][1] = delta_t / STEERING_RESOLUTION_DEG_PER_PULSE;
 	//Innovation
-	y = steering_pulses;
-	z = y - (X[1][0] * H_enc[0][1]);
+	y = observed_steering_vel;
+	z = y - X[1][0];
 
 	//Innovation covariance
 	float aux[1][3];
@@ -228,7 +223,7 @@ void EKF::correctEnc(float steering_pulses)
 	Matrix.Transpose((float*)H_enc, 1, 3, (float*) H_enc_transposed);
 	Matrix.Multiply((float*)aux, (float*)H_enc_transposed, 1, 3, 1, &Z);
 
-	Z = Z + R_enc;
+	Z = Z + R_enc / delta_t;
 
 	Matrix.Multiply((float*)P, (float*)H_enc_transposed, 3, 3, 1, (float*)K);
 	K[0][0] = K[0][0] / Z;
@@ -243,7 +238,7 @@ void EKF::correctEnc(float steering_pulses)
 	float aux_K[3][1];
 	float K_transposed[1][3];
 	float substractive_term[3][3];
-	//Matrix.Multiply((float*)K, (float*)Z, 3, 1, 1, (float*)aux_K);
+	Matrix.Multiply((float*)K, &Z, 3, 1, 1, (float*)aux_K);
 	Matrix.Transpose((float*)K, 3, 1, (float*) K_transposed);
 	Matrix.Multiply((float*)aux_K, (float*)K_transposed, 3, 1, 3, (float*)substractive_term);
 
