@@ -42,6 +42,11 @@
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.20/variants/mega</locationURI>
 		</link>
 		<link>
+			<name>libraries/EigenArduino-Eigen30</name>
+			<type>2</type>
+			<location>/home/idelpino/Arduino/libraries/EigenArduino-Eigen30</location>
+		</link>
+		<link>
 			<name>libraries/Ethernet</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/Ethernet/1.1.2</locationURI>

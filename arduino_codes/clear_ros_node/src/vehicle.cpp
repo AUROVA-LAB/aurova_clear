@@ -13,6 +13,7 @@
 #include "../headers/hardware_description_constants.h"
 #include "../headers/configuration_vehicle_hardware.h"
 #include "../headers/pid.h"
+//#include "../headers/EKF.h"
 
 const unsigned int  SAMPLING_TIME_SPEED = (int)((1.0/SAMPLING_HERTZ_SPEED)*1000.0); //ms
 const unsigned int  SAMPLING_TIME_STEERING = (int)((1.0/SAMPLING_HERTZ_STEERING)*1000.0); //ms
@@ -102,12 +103,12 @@ Vehicle::Vehicle()
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD);
   speed_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  speed_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
+  speed_estimator_ = new SDKF(SDKF_A, SDKF_B, 0.0, SDKF_Q_COVARIANCE, SDKF_R_COVARIANCE);
 
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
   steering_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  //TODO: steering_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
+  state_estimator_ = new EKF();
 
   led_rgb_value_[0] = 0;
   led_rgb_value_[1] = 0;
@@ -126,7 +127,7 @@ Vehicle::Vehicle()
   pinMode(BRAKE,OUTPUT);
   digitalWrite(BRAKE,HIGH);
 
-  //desynchronizing sampling times for I2C
+  //desynchronising sampling times for I2C
   if(SAMPLING_TIME_SPEED > SAMPLING_TIME_STEERING)
   {
 	  timeLastComputeSteering = SAMPLING_TIME_STEERING * (float)(fabs(SAMPLING_TIME_STEERING-SAMPLING_TIME_SPEED))/SAMPLING_TIME_SPEED;
@@ -263,6 +264,7 @@ int Vehicle::getOperationalMode(void)
   return (operational_mode_);
 }
 
+/*
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
 		                  ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
@@ -301,7 +303,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.speed = speed_virtual_central_wheel;
 	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
-
+*/
 	// To create outliers
 	/*count++;
 	if(count > 20)
@@ -309,7 +311,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 		measured_state_.speed = 10;
 		count = 0;
 	}*/
-
+/*
 	if(USE_KALMAN_FILTER)
 	{
 	  //speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
@@ -336,6 +338,95 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
 
   covariance_ackermann_state.drive.speed = covariance_speed;
+}
+*/
+
+void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
+		                  ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
+{
+  // We always make the prediction step
+  //float covariance_speed;
+
+  if(USE_KALMAN_FILTER && prediction_kalman_filter > time_to_predict)
+  {
+    //speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance_speed);
+    state_estimator_->predict(steering_angle_pwm_,speed_volts_);
+	prediction_kalman_filter = 0;
+  }
+
+
+  if(timeLastComputeSteering > SAMPLING_TIME_STEERING)
+  {
+	steering_measures = steering_actuator_->getSteeringMeasures();
+	timeLastComputeSteering = 0;
+
+	state_estimator_->correctEnc(steering_measures[0]);
+
+	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
+	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
+  }
+  if(timeLastComputeSpeed > SAMPLING_TIME_SPEED)
+  {
+    speed_measures = speed_actuator_->getSpeedMeasures();
+	timeLastComputeSpeed = 0;
+
+	float direction = 1.0;
+	if(!speed_actuator_->getFlagForward()) direction = -1.0;
+
+	float speed_left_rear_wheel = speed_measures[0]*METERS_PER_PULSE*direction;
+	float steering_radians      = measured_state_.steering_angle * M_PI / 180.0;
+	float center_wheel_factor   = WHEELBASE_METERS / (WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS/2.0)*tan(steering_radians));
+
+	float speed_virtual_central_wheel = speed_left_rear_wheel * center_wheel_factor;
+
+	measured_state_.speed = speed_virtual_central_wheel;
+	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
+	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
+
+	// To create outliers
+	/*count++;
+	if(count > 20)
+	{
+		measured_state_.speed = 10;
+		count = 0;
+	}*/
+
+	if(USE_KALMAN_FILTER)
+	{
+	  //speed_estimator_->make_correction(measured_state_.speed, estimated_state_.speed, covariance_speed);
+		state_estimator_->correctHall(speed_measures[0]);
+	}
+  }
+
+  state_estimator_->getState(estimated_state_.steering_angle,
+		                     estimated_state_.steering_angle_velocity,
+							 estimated_state_.speed);
+
+
+
+  state_estimator_->getVariances(covariance_ackermann_state.drive.steering_angle,
+		                         covariance_ackermann_state.drive.steering_angle_velocity,
+								 covariance_ackermann_state.drive.speed);
+
+  //if(!USE_KALMAN_FILTER) estimated_state_.speed = measured_state_.speed;
+
+  //estimated_state_.acceleration = measured_state_.acceleration;
+  //estimated_state_.jerk = measured_state_.jerk;
+
+  //estimated_state_.steering_angle = measured_state_.steering_angle;
+  //estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
+
+
+  ///////////////////////////////////////////////////////////////
+  // Passing to messages
+  estimated_ackermann_state.drive.speed = estimated_state_.speed;
+  estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
+  estimated_ackermann_state.drive.jerk = estimated_state_.jerk;
+
+  estimated_ackermann_state.drive.steering_angle = estimated_state_.steering_angle;
+  estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
+
+  //covariance_ackermann_state.drive.speed = covariance_speed;
 }
 
 void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)

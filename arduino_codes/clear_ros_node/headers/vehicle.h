@@ -20,6 +20,7 @@
 #include "../headers/steering_hardware_interface.h"
 #include "../headers/pid.h"
 #include "sdkf.h"
+#include "EKF.h"
 #include "nav_msgs/Odometry.h"
 
 struct State
@@ -76,6 +77,8 @@ private:
   byte led_rgb_value_[3];
 
   SDKFPtr speed_estimator_;
+
+  EKFPtr state_estimator_;
 
 
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
