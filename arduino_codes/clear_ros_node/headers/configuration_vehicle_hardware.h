@@ -28,16 +28,16 @@ const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 
 
 //! Sampling time encoders using I2C
-const float  SAMPLING_HERTZ_SPEED = 1.0; //Hz
-const float  SAMPLING_HERTZ_STEERING = 10.0; //Hz
+const float  SAMPLING_HERTZ_SPEED = 2.0; //Hz
+const float  SAMPLING_HERTZ_STEERING = 20.0; //Hz
 
 const float SENSOR_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
-const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = 0.005265 * 2.0;//0.0044 * 2.0;
+const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = 0.005265 * 10.0;//0.0044 * 2.0;
 const float STEERING_RESOLUTION_DEG_PER_PULSE = 0.005265;//0.0044;
 
 //------------STEERING-----------//
-const float ABS_MAX_RIGHT_ANGLE_DEG = 26.0; //Experimentally measured
-const float ABS_MAX_LEFT_ANGLE_DEG = 24.0; //Experimentally measured
+const float ABS_MAX_RIGHT_ANGLE_DEG = 20.0; //Experimentally measured
+const float ABS_MAX_LEFT_ANGLE_DEG = 23.0; //Experimentally measured
 
 //const float ABS_MAX_STEERING_ANGLE_DEG = 23.0; // To avoid the mechanical limits
 const float ABS_MAX_STEERING_ANGLE_DEG = 30.0; // To allow observing the mechanical limits
@@ -104,7 +104,7 @@ const float SDKF_R_COVARIANCE = (SENSOR_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_SP
 const float SPEED_PREDICTION_GAIN = 0.3;
 const float STEERING_PREDICTION_GAIN = 0.3;
 
-const float STEERING_ENCODER_Q_COVARIANCE = 0.005;
+const float STEERING_ENCODER_Q_COVARIANCE = 100.0;//0.005;
 
 const float STEERING_ENCODER_R_COVARIANCE = (STEERING_SENSOR_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_STEERING)*
 		                                      (STEERING_SENSOR_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_STEERING);

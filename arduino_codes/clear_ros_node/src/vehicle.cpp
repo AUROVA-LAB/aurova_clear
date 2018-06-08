@@ -214,7 +214,7 @@ void Vehicle::updateFiniteStateMachine(void)
       }
       */
 
-      operational_mode_ = CALIBRATION;
+      //operational_mode_ = CALIBRATION;
       break;
 
     case EMERGENCY_STOP:
@@ -241,6 +241,7 @@ void Vehicle::updateFiniteStateMachine(void)
       break;
 
     case CALIBRATION:
+      /*
   	  led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 255;
   	  led_rgb_value_[2] = 0;
@@ -249,7 +250,8 @@ void Vehicle::updateFiniteStateMachine(void)
 	  {
 	      operational_mode_ = RESET;
 	  }
-
+      */
+    	operational_mode_ = REMOTE_CONTROL;
 	  break;
 
   }
@@ -309,10 +311,12 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	  if(ls==1)
 	  {
 		  observed_theta = ABS_MAX_LEFT_ANGLE_DEG;
+		  Serial.println("left limit!!");
 	  }
 	  if(ls==2)
 	  {
 		  observed_theta = -1 * ABS_MAX_RIGHT_ANGLE_DEG;
+		  Serial.println("right limit!!");
 	  }
 
 	  state_estimator_->correctLs(observed_theta);

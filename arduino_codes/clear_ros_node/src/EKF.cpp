@@ -18,7 +18,7 @@ EKF::EKF(void)
 	X[2][0] = 0.0; //Speed of the platform
 
 	//Covariance matrix
-	P[0][0] = 3.0 * 3.0; //As the maximum steering angles are smaller than 30 deg
+	P[0][0] = 1.0 * 1.0; //As the maximum steering angles are smaller than 30 deg
 	                       //this initialization means that we don not have information about
 	                       //where our steering is
 	P[0][1] = 0.0; //The covariances are initialized to zero
