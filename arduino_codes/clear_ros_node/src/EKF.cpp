@@ -18,7 +18,7 @@ EKF::EKF(void)
 	X[2][0] = 0.0; //Speed of the platform
 
 	//Covariance matrix
-	P[0][0] = 1.0 * 1.0; //As the maximum steering angles are smaller than 30 deg
+	P[0][0] = 10.0 * 10.0; //As the maximum steering angles are smaller than 30 deg
 	                       //this initialization means that we don not have information about
 	                       //where our steering is
 	P[0][1] = 0.0; //The covariances are initialized to zero
@@ -116,7 +116,7 @@ void EKF::predict(float u_theta, float u_v)
 
     //State prediction
 	X[0][0] = X[0][0] + X[1][0] * delta_t;
-	X[1][0] = X[1][0] + G_theta * (u_theta - u_theta_k_minus_one);
+	//X[1][0] = X[1][0];// constant velocity model// + G_theta * (u_theta - u_theta_k_minus_one);
 	X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
 
 	u_theta_k_minus_one = u_theta;
@@ -127,6 +127,9 @@ void EKF::predict(float u_theta, float u_v)
     float F_x_transposed[3][3];
 
 	F_x[0][1] = delta_t; //Updating delta_t
+	Q[0][0] = Q[0][0] * delta_t;
+	Q[1][1] = Q[1][1] * delta_t;
+
 	Matrix.Multiply((float*)F_x, (float*)P, 3, 3, 3, (float*)aux);
 	Matrix.Transpose((float*)F_x, 3, 3, (float*) F_x_transposed);
 	Matrix.Multiply((float*)aux, (float*)F_x_transposed, 3, 3, 3, (float*)P);
@@ -140,6 +143,10 @@ void EKF::predict(float u_theta, float u_v)
 	Matrix.Multiply((float*)aux_noise, (float*)F_q_transposed, 3, 2, 3, (float*)additive_prediction_noise);
 
 	Matrix.Add((float*)P, (float*)additive_prediction_noise, 3, 3, (float*)P);
+
+	//Restore the noise matrix
+	Q[0][0] = Q[0][0] / delta_t;
+	Q[1][1] = Q[1][1] / delta_t;
 }
 
 void EKF::correctHall(float observed_speed)
@@ -157,15 +164,21 @@ void EKF::correctHall(float observed_speed)
 	float delta_t = (float)(time_change) / 1000000.0;
 
 	// Update the H matrix
-	H_hall[0][0] = (2.0 * X[2][0] * WHEELBASE_METERS * WIDTH_CENTER_WHEELS_METERS)
-			       / ( (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]) - 2*WHEELBASE_METERS*cos(X[0][0]))
-			    		   * (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]) - 2*WHEELBASE_METERS*cos(X[0][0])) );
+//	H_hall[0][0] = (2.0 * X[2][0] * WHEELBASE_METERS * WIDTH_CENTER_WHEELS_METERS)
+//			       / ( (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]*M_PI/180.0) - 2*WHEELBASE_METERS*cos(X[0][0]*M_PI/180.0))
+//			    		   * (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]*M_PI/180.0) - 2*WHEELBASE_METERS*cos(X[0][0]*M_PI/180.0)) );
+//	H_hall[0][1] = 0.0;
+//	H_hall[0][2] = WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180.0)/2.0));
+
+	H_hall[0][0] = ( -1 * X[2][0] * WIDTH_CENTER_WHEELS_METERS) / ( 2 * WHEELBASE_METERS * cos(X[0][0]*M_PI/180.0) *cos(X[0][0]*M_PI/180.0));
 	H_hall[0][1] = 0.0;
-	H_hall[0][2] = WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0));
+	H_hall[0][2] = 1 - ( ( WIDTH_CENTER_WHEELS_METERS * tan( X[0][0]*M_PI/180.0 ) ) / ( 2 * WHEELBASE_METERS) );
 
 	//Innovation
-	y = observed_speed * WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0])/2.0));
-	z = y - X[2][0];
+	//y = observed_speed * WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180.0)/2.0));
+	//z = y - X[2][0];
+	y = observed_speed;
+	z = y - X[2][0] * ( 1 - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180) / WHEELBASE_METERS) );
 
 	//Innovation covariance
 	float aux[1][3];
