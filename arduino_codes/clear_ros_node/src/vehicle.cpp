@@ -100,12 +100,16 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD);
+  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed,
+		                        SPEED_KP, SPEED_KI, SPEED_KD, MIN_VOLTS_TO_ACTUATE_MOTOR);
+
   speed_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
   speed_estimator_ = new SDKF(SDKF_A, SDKF_B, 0.0, SDKF_Q_COVARIANCE, SDKF_R_COVARIANCE);
 
-  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
+  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle,
+		                           STEERING_KP, STEERING_KI, STEERING_KD, MIN_PWM_TO_ACTUATE_MOTOR);
+
   steering_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
   state_estimator_ = new EKF();
@@ -390,14 +394,13 @@ void Vehicle::calculateCommandOutputs(void)
 		  if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	      {
 			  desired_state_.speed = 0.0;
-			  estimated_state_.speed = 0.0;
+			  //estimated_state_.speed = 0.0;
 
 			  speed_volts_pid_ = 0.0;
 			  resetSpeed();
 		  }
 		  else
 		  {
-
 			  speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_VOLTS);
 		  }
 		  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_MOTOR_PWM);

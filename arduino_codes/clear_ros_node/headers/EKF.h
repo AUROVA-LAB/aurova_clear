@@ -20,6 +20,7 @@ private:
 
 	float F_x[3][3];
 	float F_q[3][2];
+	float base_Q[2][2];
 	float Q[2][2];
 	float y;
 	float z;

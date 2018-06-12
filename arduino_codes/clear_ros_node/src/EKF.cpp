@@ -55,11 +55,17 @@ EKF::EKF(void)
 	F_q[2][0] = 0.0;
 	F_q[2][1] = 1.0;
 
-	Q[0][0] = STEERING_ENCODER_Q_COVARIANCE; //Steering velocity prediction covariance
+	base_Q[0][0] = STEERING_ENCODER_Q_COVARIANCE; //Steering velocity prediction covariance
+	base_Q[0][1] = 0.0;
+
+	base_Q[1][0] = 0.0;
+	base_Q[1][1] = SDKF_Q_COVARIANCE; //Speed prediction covariance (in ICINCO paper is 0.005)
+
+	Q[0][0] = 0.0;
 	Q[0][1] = 0.0;
 
 	Q[1][0] = 0.0;
-	Q[1][1] = SDKF_Q_COVARIANCE; //Speed prediction covariance (in ICINCO paper is 0.005)
+	Q[1][1] = 0.0;
 
 	y = 0.0;
 	z = 0.0;
@@ -127,9 +133,19 @@ void EKF::predict(float u_theta, float u_v)
     float F_x_transposed[3][3];
 
 	F_x[0][1] = delta_t; //Updating delta_t
-	Q[0][0] = Q[0][0] * delta_t;
-	Q[1][1] = Q[1][1] * delta_t;
+	if(u_theta != 0.0)
+	{
+		Q[0][0] = base_Q[0][0] * delta_t;
+	}else{
+		Q[0][0] = 0.0;
+	}
 
+	if(u_v != 0.0)
+	{
+		Q[1][1] = base_Q[1][1] * delta_t;
+	}else{
+		Q[1][1] = 0.0;
+	}
 	Matrix.Multiply((float*)F_x, (float*)P, 3, 3, 3, (float*)aux);
 	Matrix.Transpose((float*)F_x, 3, 3, (float*) F_x_transposed);
 	Matrix.Multiply((float*)aux, (float*)F_x_transposed, 3, 3, 3, (float*)P);
@@ -144,9 +160,9 @@ void EKF::predict(float u_theta, float u_v)
 
 	Matrix.Add((float*)P, (float*)additive_prediction_noise, 3, 3, (float*)P);
 
-	//Restore the noise matrix
-	Q[0][0] = Q[0][0] / delta_t;
-	Q[1][1] = Q[1][1] / delta_t;
+//	//Restore the noise matrix
+//	Q[0][0] = Q[0][0] / delta_t;
+//	Q[1][1] = Q[1][1] / delta_t;
 }
 
 void EKF::correctHall(float observed_speed)

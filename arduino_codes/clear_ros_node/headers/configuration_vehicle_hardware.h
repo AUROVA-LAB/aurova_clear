@@ -32,6 +32,8 @@ const float  SAMPLING_HERTZ_SPEED = 2.0; //Hz
 const float SENSOR_HALL_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
 
 //------------STEERING-----------//
+const float MIN_PWM_TO_ACTUATE_MOTOR = 20.0;
+
 const float  SAMPLING_HERTZ_STEERING = 50.0; //Hz
 
 const float ABS_MAX_RIGHT_ANGLE_DEG = 25.0; //Experimentally measured
@@ -72,6 +74,7 @@ const float METERS_PER_PULSE = M_PI*REAR_WHEEL_DIAM_METERS/(SPEED_ENCODER_PULSES
 
 const float ABS_MAX_SPEED_VOLTS = 4.9;
 const float MIN_VOLTS_TO_RELEASE_BRAKE = 0.5;
+const float MIN_VOLTS_TO_ACTUATE_MOTOR = 0.0;
 
 const float MIN_SETPOINT_TO_USE_PID = 0.05;
 
