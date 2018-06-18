@@ -21,6 +21,7 @@
 #define NUM_OF_ARDUINO_STATUS_VARIABLES 4
 #define NUM_OF_CONTROLLED_MOTORS        2
 #define NUM_OF_PID_GAINS                3
+#define NUM_OF_STEERING_LIMIT_SWITCHES  2
 
 /*! Verbose levels to adjust the amount of information sent by the
  *  Arduino to avoid exceeding the communication bandwidth

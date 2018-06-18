@@ -145,6 +145,27 @@ ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desi
 ros::Publisher required_steering_pid_gains_publisher("echo_desired_steering_pid_gains", &ste_pid_gains_echo);
 
 
+/*! \brief CallBack to read the steering control PID gains (kp, ki, and kd)
+ *
+ * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
+ */
+std_msgs::Float32MultiArray desired_limit_switches_position_LR;
+std_msgs::Float32MultiArray echo_desired_limit_switches_position_LR;
+void limitSwitchesCalibrationCB(const std_msgs::Float32MultiArray& limit_switches_msg)
+{
+  desired_limit_switches_position_LR = limit_switches_msg;
+  desired_limit_switches_position_LR.data_length = 2;
+
+  AckermannVehicle.setLimitSwitchesPositionLR(desired_limit_switches_position_LR);
+
+}
+ros::Subscriber<std_msgs::Float32MultiArray> limit_switches_calibration_subscriber("desired_limit_switches_position_LR",
+                                                                           &limitSwitchesCalibrationCB);
+
+ros::Publisher required_limit_switches_position_publisher("echo_desired_limit_switches_position_LR",
+		                                                   &echo_desired_limit_switches_position_LR);
+
+
 
 /*!
  * Publisher to communicate to ROS the actual signals applied to the actuators (speed and steering)
@@ -196,6 +217,12 @@ void reserveDynamicMemory(void)
 
   ste_pid_gains_echo.data_length = NUM_OF_PID_GAINS;
   ste_pid_gains_echo.data = (float *)malloc(sizeof(float) * NUM_OF_PID_GAINS);
+
+  desired_limit_switches_position_LR.data_length = NUM_OF_STEERING_LIMIT_SWITCHES;
+  desired_limit_switches_position_LR.data = (float *)malloc(sizeof(float) * NUM_OF_STEERING_LIMIT_SWITCHES);
+
+  echo_desired_limit_switches_position_LR.data_length = NUM_OF_STEERING_LIMIT_SWITCHES;
+  echo_desired_limit_switches_position_LR.data = (float *)malloc(sizeof(float) * NUM_OF_STEERING_LIMIT_SWITCHES);
 }
 
 
@@ -234,6 +261,9 @@ void setup()
 
   nh.subscribe(steering_pid_gains_subscriber);
   nh.advertise(required_steering_pid_gains_publisher);
+
+  nh.subscribe(limit_switches_calibration_subscriber);
+  nh.advertise(required_limit_switches_position_publisher);
 
   nh.advertise(arduino_status_publisher);
   nh.advertise(speed_volts_and_steering_pwm);
@@ -309,6 +339,9 @@ void sendOutputsToROS(void)
 
     AckermannVehicle.getSteeringPIDGains(ste_pid_gains_echo);
     required_steering_pid_gains_publisher.publish(&ste_pid_gains_echo);
+
+    AckermannVehicle.getLimitSwitchesPositionLR(echo_desired_limit_switches_position_LR);
+    required_limit_switches_position_publisher.publish(&echo_desired_limit_switches_position_LR);
   }
   if (verbose_level >= MIN_VERBOSE_LEVEL)
   {

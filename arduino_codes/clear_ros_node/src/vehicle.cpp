@@ -90,6 +90,9 @@ Vehicle::Vehicle()
   speed_volts_pid_ = 0.0;
   steering_angle_pwm_pid_ = 0.0;
 
+  left_steering_limit_switch_position_ = ABS_MAX_LEFT_ANGLE_DEG;
+  right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
+
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
@@ -185,6 +188,18 @@ void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid
 void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
 	steering_controller_ -> getPIDGains(current_pid_gains.data[0],current_pid_gains.data[1],current_pid_gains.data[2]);
+}
+
+void Vehicle::setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position)
+{
+	left_steering_limit_switch_position_ = desired_limit_switches_position.data[0];
+	right_steering_limit_switch_position_ = desired_limit_switches_position.data[1];
+}
+
+void Vehicle::getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position)
+{
+	current_limit_switches_position.data[0] = left_steering_limit_switch_position_;
+	current_limit_switches_position.data[1] = right_steering_limit_switch_position_;
 }
 
 void Vehicle::getOperationalMode(int& current_operational_mode)
@@ -314,12 +329,12 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	  float observed_theta = 0.0;
 	  if(ls==1)
 	  {
-		  observed_theta = ABS_MAX_LEFT_ANGLE_DEG;
+		  observed_theta = left_steering_limit_switch_position_;
 		  Serial.println("left limit!!");
 	  }
 	  if(ls==2)
 	  {
-		  observed_theta = -1 * ABS_MAX_RIGHT_ANGLE_DEG;
+		  observed_theta = -1 * right_steering_limit_switch_position_;
 		  Serial.println("right limit!!");
 	  }
 

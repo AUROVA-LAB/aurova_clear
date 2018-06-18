@@ -69,6 +69,9 @@ private:
   float speed_volts_pid_;
   float steering_angle_pwm_pid_;
 
+  float left_steering_limit_switch_position_;
+  float right_steering_limit_switch_position_;
+
   DJI_DBUSPtr dBus_;
 
   SpeedHardwareInterfacePtr speed_actuator_;
@@ -176,6 +179,11 @@ public:
    * @param current_pid_gains
    */
   void getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains);
+
+  void setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position);
+
+  void getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position);
+
 
   /*!
    * returns the current operational mode, that is the same that the current
