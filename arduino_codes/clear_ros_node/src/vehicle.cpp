@@ -285,7 +285,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	steering_measures = steering_actuator_->getSteeringMeasures();
 	timeLastComputeSteering = 0;
 
-	state_estimator_->correctEnc(steering_measures[1]*PULSES_TO_DEG);
+	state_estimator_->correctEnc(steering_measures[1]*PULSES_TO_DEG, steering_angle_pwm_);
 
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;

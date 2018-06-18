@@ -37,7 +37,7 @@ const float MIN_PWM_TO_ACTUATE_MOTOR = 20.0;
 const float  SAMPLING_HERTZ_STEERING = 50.0; //Hz
 
 const float ABS_MAX_RIGHT_ANGLE_DEG = 25.0; //Experimentally measured
-const float ABS_MAX_LEFT_ANGLE_DEG = 25.0; //Experimentally measured
+const float ABS_MAX_LEFT_ANGLE_DEG = 26.0; //Experimentally measured
 
 //const float ABS_MAX_STEERING_ANGLE_DEG = 23.0; // To avoid the mechanical limits
 const float ABS_MAX_STEERING_ANGLE_DEG = 28.0; // To allow observing the mechanical limits
@@ -45,16 +45,18 @@ const float ABS_MAX_STEERING_ANGLE_DEG = 28.0; // To allow observing the mechani
 /////////////////////////////////////
 //TODO!!! Check this values!!!
 /////////////////////////////////////
+const float STEERING_REDUCTION_RATIO = 60.0;
+const float STEERING_ENCODER_BASE_RESOLUTION = 1024.0; //
 const float ABS_MAX_STEERING_SWEEP_DEG = ABS_MAX_RIGHT_ANGLE_DEG+ABS_MAX_LEFT_ANGLE_DEG;
 
-const int ABS_MAX_STEERING_PULSES = 8000;//9600; //Experimentally measured with constant PWM (speed);
+//const int ABS_MAX_STEERING_PULSES = 8000;//9600; //Experimentally measured with constant PWM (speed);
 
-const float PULSES_TO_DEG = ABS_MAX_STEERING_SWEEP_DEG/ABS_MAX_STEERING_PULSES; //0.005265;//0.0044;
+const float PULSES_TO_DEG = 360.0 / (STEERING_ENCODER_BASE_RESOLUTION * STEERING_REDUCTION_RATIO);//ABS_MAX_STEERING_SWEEP_DEG/ABS_MAX_STEERING_PULSES; //0.005265;//0.0044;
 
 const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = PULSES_TO_DEG;// * 2.0;
-const float STEERING_RESOLUTION_DEG_PER_PULSE = PULSES_TO_DEG;
+//const float STEERING_RESOLUTION_DEG_PER_PULSE = PULSES_TO_DEG;
 
-const float PULSES_TO_CENTER_FROM_RIGHT = 4938; //ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG
+const float PULSES_TO_CENTER_FROM_RIGHT = ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG; //4938; Experimental
 /////////////////////////////////////////
 
 const int ABS_MAX_STEERING_MOTOR_PWM = 100;

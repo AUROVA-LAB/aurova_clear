@@ -54,7 +54,7 @@ public:
 
 	void correctHall(float observed_speed);
 
-	void correctEnc(float observed_steering_vel);
+	void correctEnc(float observed_steering_vel, float u_theta);
 
 	void correctLs(float observed_theta);
 

@@ -123,6 +123,7 @@ void EKF::predict(float u_theta, float u_v)
     //State prediction
 	X[0][0] = X[0][0] + X[1][0] * delta_t;
 	//X[1][0] = X[1][0];// constant velocity model// + G_theta * (u_theta - u_theta_k_minus_one);
+	if(u_theta == 0.0) X[1][0] = 0.0;
 	X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
 
 	u_theta_k_minus_one = u_theta;
@@ -159,10 +160,6 @@ void EKF::predict(float u_theta, float u_v)
 	Matrix.Multiply((float*)aux_noise, (float*)F_q_transposed, 3, 2, 3, (float*)additive_prediction_noise);
 
 	Matrix.Add((float*)P, (float*)additive_prediction_noise, 3, 3, (float*)P);
-
-//	//Restore the noise matrix
-//	Q[0][0] = Q[0][0] / delta_t;
-//	Q[1][1] = Q[1][1] / delta_t;
 }
 
 void EKF::correctHall(float observed_speed)
@@ -180,19 +177,11 @@ void EKF::correctHall(float observed_speed)
 	float delta_t = (float)(time_change) / 1000000.0;
 
 	// Update the H matrix
-//	H_hall[0][0] = (2.0 * X[2][0] * WHEELBASE_METERS * WIDTH_CENTER_WHEELS_METERS)
-//			       / ( (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]*M_PI/180.0) - 2*WHEELBASE_METERS*cos(X[0][0]*M_PI/180.0))
-//			    		   * (WIDTH_CENTER_WHEELS_METERS*sin(X[0][0]*M_PI/180.0) - 2*WHEELBASE_METERS*cos(X[0][0]*M_PI/180.0)) );
-//	H_hall[0][1] = 0.0;
-//	H_hall[0][2] = WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180.0)/2.0));
-
 	H_hall[0][0] = ( -1 * X[2][0] * WIDTH_CENTER_WHEELS_METERS) / ( 2 * WHEELBASE_METERS * cos(X[0][0]*M_PI/180.0) *cos(X[0][0]*M_PI/180.0));
 	H_hall[0][1] = 0.0;
 	H_hall[0][2] = 1 - ( ( WIDTH_CENTER_WHEELS_METERS * tan( X[0][0]*M_PI/180.0 ) ) / ( 2 * WHEELBASE_METERS) );
 
 	//Innovation
-	//y = observed_speed * WHEELBASE_METERS/(WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180.0)/2.0));
-	//z = y - X[2][0];
 	y = observed_speed;
 	z = y - X[2][0] * ( 1 - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180) / WHEELBASE_METERS) );
 
@@ -227,7 +216,7 @@ void EKF::correctHall(float observed_speed)
 }
 
 
-void EKF::correctEnc(float observed_steering_vel)
+void EKF::correctEnc(float observed_steering_vel, float u_theta)
 {
 	unsigned long int time_change;
 	current_time_ = micros();
@@ -242,41 +231,48 @@ void EKF::correctEnc(float observed_steering_vel)
 	float delta_t = (float)(time_change) / 1000000.0;
 
 	//Innovation
-	y = observed_steering_vel;
-	z = y - X[1][0];
+	if(fabs(observed_steering_vel) < 0.001 && u_theta == 0.0)
+	{
+		X[1][0] = 0.0;
+		P[1][1] = 0.0001;
+	}else{
+		Serial.println("Integrating steering encoder velocity observation!");
+		y = observed_steering_vel;
+		z = y - X[1][0];
 
-	//Innovation covariance
-	float aux[1][3];
-	float H_enc_transposed[3][1];
-	Matrix.Multiply((float*)H_enc, (float*)P, 1, 3, 3, (float*)aux);
-	Matrix.Transpose((float*)H_enc, 1, 3, (float*) H_enc_transposed);
-	Matrix.Multiply((float*)aux, (float*)H_enc_transposed, 1, 3, 1, &Z);
+		//Innovation covariance
+		float aux[1][3];
+		float H_enc_transposed[3][1];
+		Matrix.Multiply((float*)H_enc, (float*)P, 1, 3, 3, (float*)aux);
+		Matrix.Transpose((float*)H_enc, 1, 3, (float*) H_enc_transposed);
+		Matrix.Multiply((float*)aux, (float*)H_enc_transposed, 1, 3, 1, &Z);
 
-	Z = Z + R_enc / delta_t;
+		Z = Z + R_enc / delta_t;
 
-	Matrix.Multiply((float*)P, (float*)H_enc_transposed, 3, 3, 1, (float*)K);
-	K[0][0] = K[0][0] / Z;
-	K[1][0] = K[1][0] / Z;
-	K[2][0] = K[2][0] / Z;
+		Matrix.Multiply((float*)P, (float*)H_enc_transposed, 3, 3, 1, (float*)K);
+		K[0][0] = K[0][0] / Z;
+		K[1][0] = K[1][0] / Z;
+		K[2][0] = K[2][0] / Z;
 
-	//Correction
-	X[0][0] = X[0][0] + K[0][0] * z;
-	X[1][0] = X[1][0] + K[1][0] * z;
-	X[2][0] = X[2][0] + K[2][0] * z;
+		//Correction
+		X[0][0] = X[0][0] + K[0][0] * z;
+		X[1][0] = X[1][0] + K[1][0] * z;
+		X[2][0] = X[2][0] + K[2][0] * z;
 
-	float aux_K[3][1];
-	float K_transposed[1][3];
-	float substractive_term[3][3];
-	Matrix.Multiply((float*)K, &Z, 3, 1, 1, (float*)aux_K);
-	Matrix.Transpose((float*)K, 3, 1, (float*) K_transposed);
-	Matrix.Multiply((float*)aux_K, (float*)K_transposed, 3, 1, 3, (float*)substractive_term);
+		float aux_K[3][1];
+		float K_transposed[1][3];
+		float substractive_term[3][3];
+		Matrix.Multiply((float*)K, &Z, 3, 1, 1, (float*)aux_K);
+		Matrix.Transpose((float*)K, 3, 1, (float*) K_transposed);
+		Matrix.Multiply((float*)aux_K, (float*)K_transposed, 3, 1, 3, (float*)substractive_term);
 
-	Matrix.Subtract((float*)P, (float*)substractive_term, 3, 3, (float*) P);
-
+		Matrix.Subtract((float*)P, (float*)substractive_term, 3, 3, (float*) P);
+	}
 }
 
 void EKF::correctLs(float observed_theta)
 {
+	Serial.println("Limit switch observed!");
 	//Innovation
 	y = observed_theta;
 	z = y - X[0][0];
