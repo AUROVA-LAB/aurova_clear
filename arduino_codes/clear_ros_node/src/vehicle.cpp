@@ -288,25 +288,26 @@ int Vehicle::getOperationalMode(void)
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
 		                  ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
-  if(prediction_kalman_filter > time_to_predict)
+  if(prediction_kalman_filter >= time_to_predict)
   {
     state_estimator_->predict(steering_angle_pwm_,speed_volts_);
 	prediction_kalman_filter = 0;
   }
 
 
-  if(timeLastComputeSteering > SAMPLING_TIME_STEERING)
+  if(timeLastComputeSteering >= SAMPLING_TIME_STEERING)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
+
+	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
+	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
+	//measured_state_.steering_angle += measured_state_.steering_angle_velocity * (timeLastComputeSteering / 1000.0); //ms to seconds
 	timeLastComputeSteering = 0;
 
-	state_estimator_->correctEnc(steering_measures[1]*PULSES_TO_DEG, steering_angle_pwm_);
-
-	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
-	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
+	state_estimator_->correctEnc(measured_state_.steering_angle_velocity, steering_angle_pwm_);
   }
 
-  if(timeLastComputeSpeed > SAMPLING_TIME_SPEED)
+  if(timeLastComputeSpeed >= SAMPLING_TIME_SPEED)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
@@ -323,22 +324,39 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
     state_estimator_->correctHall(speed_left_rear_wheel);
   }
 
-  int ls = steering_actuator_->readLimitSwitches();
-  if(ls != 0)
+  //Serial.println(steering_actuator_->readLimitSwitches());
+  //int ls = 0;
+  //		  steering_actuator_->readLimitSwitches();
+  if(steering_actuator_->readLimitSwitches())
   {
+	  //Serial.print("Limit!!");
 	  float observed_theta = 0.0;
-	  if(ls==1)
+//	  if(ls==1)
+//	  {
+//		  observed_theta = left_steering_limit_switch_position_;
+//		  //measured_state_.steering_angle = observed_theta;
+//		  //Serial.println("left limit!!");
+//	  }
+//	  if(ls==2)
+//	  {
+//		  observed_theta = -1 * right_steering_limit_switch_position_;
+//		  //measured_state_.steering_angle = observed_theta;
+//		  //Serial.println("right limit!!");
+//	  }
+//      //Serial.print("Steering angle = ");
+//      //Serial.println(measured_state_.steering_angle);
+//	  //state_estimator_->correctLs(observed_theta);
+	  if(estimated_state_.steering_angle > 0.0)
 	  {
 		  observed_theta = left_steering_limit_switch_position_;
-		  Serial.println("left limit!!");
-	  }
-	  if(ls==2)
-	  {
+		  //Serial.println("left limit!!");
+	  }else{
 		  observed_theta = -1 * right_steering_limit_switch_position_;
-		  Serial.println("right limit!!");
+		  //Serial.println("right limit!!");
 	  }
-
+	  //Serial.println(measured_state_.steering_angle);
 	  state_estimator_->correctLs(observed_theta);
+
   }
 
   state_estimator_->getState(estimated_state_.steering_angle,
@@ -353,6 +371,10 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
   estimated_state_.acceleration = measured_state_.acceleration;
   estimated_state_.jerk = measured_state_.jerk;
+
+  // Uncomment to use the measured steering instead of the EKF estimation
+  //estimated_state_.steering_angle = measured_state_.steering_angle;
+  //estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
   // Passing to messages
   estimated_ackermann_state.drive.speed = estimated_state_.speed;
@@ -545,7 +567,13 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
   {
 	  speed_volts_ = speed_volts_pid_;
 	  if(fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE) digitalWrite(BRAKE,LOW);
-	  steering_angle_pwm_ = steering_angle_pwm_pid_;
+	  //int ls = steering_actuator_->readLimitSwitches();
+	  //if(ls != 0)
+	  //{
+	  //	  steering_angle_pwm_ = 0;
+	  //}else{
+		  steering_angle_pwm_ = steering_angle_pwm_pid_;
+	  //}
   }
 
   if(timeBeforeBrake > MAX_TIME_ZERO_VOLTS_TO_BRAKE)

@@ -32,15 +32,15 @@ const float  SAMPLING_HERTZ_SPEED = 2.0; //Hz
 const float SENSOR_HALL_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
 
 //------------STEERING-----------//
-const float MIN_PWM_TO_ACTUATE_MOTOR = 20.0;
+const float MIN_PWM_TO_ACTUATE_MOTOR = 0.0;
 
-const float  SAMPLING_HERTZ_STEERING = 50.0; //Hz
+const float  SAMPLING_HERTZ_STEERING = 50.0;
 
-const float ABS_MAX_RIGHT_ANGLE_DEG = 25.0; //Experimentally measured
-const float ABS_MAX_LEFT_ANGLE_DEG = 26.0; //Experimentally measured
+const float ABS_MAX_RIGHT_ANGLE_DEG = 25.75; //Experimentally measured
+const float ABS_MAX_LEFT_ANGLE_DEG = 28.5; //Experimentally measured
 
 //const float ABS_MAX_STEERING_ANGLE_DEG = 23.0; // To avoid the mechanical limits
-const float ABS_MAX_STEERING_ANGLE_DEG = 28.0; // To allow observing the mechanical limits
+const float ABS_MAX_STEERING_ANGLE_DEG = 35.0; // To allow observing the mechanical limits
 
 /////////////////////////////////////
 //TODO!!! Check this values!!!

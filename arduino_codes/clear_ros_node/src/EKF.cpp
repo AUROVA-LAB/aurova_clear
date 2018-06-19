@@ -121,9 +121,9 @@ void EKF::predict(float u_theta, float u_v)
 	float delta_t = (float)(time_change) / 1000000.0;
 
     //State prediction
+	if(u_theta == 0.0) X[1][0] = 0.0;
 	X[0][0] = X[0][0] + X[1][0] * delta_t;
 	//X[1][0] = X[1][0];// constant velocity model// + G_theta * (u_theta - u_theta_k_minus_one);
-	if(u_theta == 0.0) X[1][0] = 0.0;
 	X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
 
 	u_theta_k_minus_one = u_theta;
