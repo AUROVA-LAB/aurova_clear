@@ -106,10 +106,11 @@ bool SteeringHardwareInterface::steeringCalibration(void)
 	int steering_speed = -1*ABS_MOTOR_PWM_FOR_CALIBRATION;
 
 	steering_encoder_->encoderRead(0,measures_[0]); //pulses
-
+    Serial.println("Steering Calibration!!");
 	switch (current_state)
 	{
 		case RIGHT:
+			Serial.println("Searching Right limit switch!");
 			if(digitalRead(PIN_LSR) == LOW)
 			{
 				next_state = CENTERED;
@@ -118,6 +119,7 @@ bool SteeringHardwareInterface::steeringCalibration(void)
 			break;
 
 		case CENTERED:
+			Serial.println("Searching steering center!!");
 			if(measures_[0] < PULSES_TO_CENTER_FROM_RIGHT - TOLERANCE_PULSES_FIND_ZERO_POS)
 				steering_speed = ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
 

@@ -260,17 +260,18 @@ void Vehicle::updateFiniteStateMachine(void)
       break;
 
     case CALIBRATION:
-      /*
+
   	  led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 255;
   	  led_rgb_value_[2] = 0;
+//      Serial.println("Calibration mode!!");
+//  	  if( componentsCalibration() )
+//	  {
+//	      operational_mode_ = RESET;
+//	  }
 
-  	  if( componentsCalibration() )
-	  {
-	      operational_mode_ = RESET;
-	  }
-      */
-    	operational_mode_ = REMOTE_CONTROL;
+      operational_mode_ = REMOTE_CONTROL;
+  	  steering_actuator_->steering_encoder_->encoderReset(11);
 	  break;
 
   }
@@ -290,7 +291,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 {
   if(prediction_kalman_filter >= time_to_predict)
   {
-    state_estimator_->predict(steering_angle_pwm_,speed_volts_);
+    state_estimator_->predict(speed_volts_);
 	prediction_kalman_filter = 0;
   }
 
@@ -301,10 +302,9 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
-	//measured_state_.steering_angle += measured_state_.steering_angle_velocity * (timeLastComputeSteering / 1000.0); //ms to seconds
 	timeLastComputeSteering = 0;
-
-	state_estimator_->correctEnc(measured_state_.steering_angle_velocity, steering_angle_pwm_);
+	//Serial.println(measured_state_.steering_angle);
+	state_estimator_->correctEnc(measured_state_.steering_angle);
   }
 
   if(timeLastComputeSpeed >= SAMPLING_TIME_SPEED)
@@ -354,23 +354,32 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 		  observed_theta = -1 * right_steering_limit_switch_position_;
 		  //Serial.println("right limit!!");
 	  }
-	  //Serial.println(measured_state_.steering_angle);
+	  Serial.println(measured_state_.steering_angle);
 	  state_estimator_->correctLs(observed_theta);
 
   }
 
-  state_estimator_->getState(estimated_state_.steering_angle,
-		                     estimated_state_.steering_angle_velocity,
+  float steering_calibration_error = 0.0;
+  float steering_cummulated_increment = 0.0;
+  state_estimator_->getState(steering_calibration_error,
+		  	                 steering_cummulated_increment,
 							 estimated_state_.speed);
 
+  estimated_state_.steering_angle = steering_calibration_error + steering_cummulated_increment;
+  estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
 
-  state_estimator_->getVariances(covariance_ackermann_state.drive.steering_angle,
-		                         covariance_ackermann_state.drive.steering_angle_velocity,
+  float steering_calibration_error_variance = 0.0;
+  float steering_cummulated_increment_variance = 0.0;
+  state_estimator_->getVariances(steering_calibration_error_variance,
+		                         steering_cummulated_increment_variance,
 								 covariance_ackermann_state.drive.speed);
 
-  estimated_state_.acceleration = measured_state_.acceleration;
-  estimated_state_.jerk = measured_state_.jerk;
+  covariance_ackermann_state.drive.steering_angle = steering_calibration_error_variance + steering_cummulated_increment_variance;
+  covariance_ackermann_state.drive.steering_angle_velocity = 0.0;
+
+  estimated_state_.acceleration = steering_calibration_error;
+  estimated_state_.jerk = steering_cummulated_increment;
 
   // Uncomment to use the measured steering instead of the EKF estimation
   //estimated_state_.steering_angle = measured_state_.steering_angle;
@@ -563,7 +572,7 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
 	  steering_angle_pwm_ = 0;
   }
 
-  else if(operational_mode_)
+  else if(operational_mode_ != CALIBRATION)
   {
 	  speed_volts_ = speed_volts_pid_;
 	  if(fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE) digitalWrite(BRAKE,LOW);

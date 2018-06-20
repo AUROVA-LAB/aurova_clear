@@ -33,10 +33,8 @@ private:
 	float R_ls;
 	float K[3][1];
 
-	float G_theta;
 	float G_v;
 
-	float u_theta_k_minus_one;
 	float u_v_k_minus_one;
 
 	unsigned long int current_time_;
@@ -50,17 +48,18 @@ public:
 
 	EKF(void);
 
-	void predict(float u_theta, float u_v);
+	void predict(float u_v);
 
 	void correctHall(float observed_speed);
 
-	void correctEnc(float observed_steering_vel, float u_theta);
+	void correctEnc(float observed_steering_increment);
 
 	void correctLs(float observed_theta);
 
-	void getState(float& steering_angle_deg, float& steering_velocity_deg_s, float& speed_ms);
+	void getState(float& initial_steering_angle_deg, float& steering_angle_increment_deg, float& speed_ms);
 
-	void getVariances(float& steering_angle_variance, float& steering_velocity_variance, float& speed_variance);
+	void getVariances(float& initial_steering_angle_variance, float& steering_angle_increment_variance,
+			          float& speed_variance);
 
 };
 

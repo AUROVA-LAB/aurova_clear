@@ -13,28 +13,26 @@ EKF::EKF(void)
 	//Initializations:
 
 	//State
-	X[0][0] = 0.0; //Steering angle
-	X[1][0] = 0.0; //Steering angular velocity in degrees
+	X[0][0] = 0.0; //Initial steering angle (calibration error)
+	X[1][0] = 0.0; //Increment of the steering angle (measured by the incremental encoder)
 	X[2][0] = 0.0; //Speed of the platform
 
 	//Covariance matrix
-	P[0][0] = 10.0 * 10.0; //As the maximum steering angles are smaller than 30 deg
-	                       //this initialization means that we don not have information about
-	                       //where our steering is
-	P[0][1] = 0.0; //The covariances are initialized to zero
+	P[0][0] = 3.0 * 3.0;   // We set as 3 degrees the std of out calibration method
+	P[0][1] = 0.0;
 	P[0][2] = 0.0;
 
 	P[1][0] = 0.0;
-	P[1][1] = 1.0 * 1.0; //We'll give an initial uncertanty of one deg per sec
+	P[1][1] = 0.01 * 0.01; // we use a small value just to not put zero
 	P[1][2] = 0.0;
 
 	P[2][0] = 0.0;
 	P[2][1] = 0.0;
-	P[2][2] = 0.1 * 0.1; //one decimeter per second (despite we know that the velocity is zero at start)
+	P[2][2] = 0.01 * 0.01; // we use a small value just to not put zero
 
 	//Jacobian of the transition matrix
 	F_x[0][0] = 1.0;
-	F_x[0][1] = 0.050; //20Hz, however this value will be updated on-line
+	F_x[0][1] = 0.0;
 	F_x[0][2] = 0.0;
 
 	F_x[1][0] = 0.0;
@@ -55,7 +53,7 @@ EKF::EKF(void)
 	F_q[2][0] = 0.0;
 	F_q[2][1] = 1.0;
 
-	base_Q[0][0] = STEERING_ENCODER_Q_COVARIANCE; //Steering velocity prediction covariance
+	base_Q[0][0] = MAX_STEERING_RATE; // degrees per second
 	base_Q[0][1] = 0.0;
 
 	base_Q[1][0] = 0.0;
@@ -94,19 +92,17 @@ EKF::EKF(void)
 	H_ls[0][1] = 0.0;
 	H_ls[0][2] = 0.0;
 
-	G_theta = STEERING_PREDICTION_GAIN;
 	G_v = SPEED_PREDICTION_GAIN;
 
-	u_theta_k_minus_one = 0.0;
 	u_v_k_minus_one = 0.0;
 
 	current_time_ = 0;
 	last_time_prediction_ = micros();
 	last_time_correction_hall_ = last_time_prediction_;
-	last_time_correction_enc_  = last_time_prediction_;
+	last_time_correction_enc_ = last_time_prediction_;
 }
 
-void EKF::predict(float u_theta, float u_v)
+void EKF::predict(float u_v)
 {
 	unsigned long int time_change;
 	current_time_ = micros();
@@ -121,32 +117,25 @@ void EKF::predict(float u_theta, float u_v)
 	float delta_t = (float)(time_change) / 1000000.0;
 
     //State prediction
-	if(u_theta == 0.0) X[1][0] = 0.0;
-	X[0][0] = X[0][0] + X[1][0] * delta_t;
-	//X[1][0] = X[1][0];// constant velocity model// + G_theta * (u_theta - u_theta_k_minus_one);
+	//X[0][0] = X[0][0]; // initial steering angle does not depend on time
+	//X[1][0] = X[1][0]; // constant position model plus perturbation noise
 	X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
-
-	u_theta_k_minus_one = u_theta;
 	u_v_k_minus_one = u_v;
 
 	// Covariance prediction
 	float aux[3][3];
     float F_x_transposed[3][3];
 
-	F_x[0][1] = delta_t; //Updating delta_t
-	if(u_theta != 0.0)
-	{
-		Q[0][0] = base_Q[0][0] * delta_t;
-	}else{
-		Q[0][0] = 0.0;
-	}
+	Q[0][0] = base_Q[0][0] * delta_t; //max steering rate times delta_t gives us the max displacement in theta
+	Q[1][1] = base_Q[1][1] * delta_t;
 
-	if(u_v != 0.0)
-	{
-		Q[1][1] = base_Q[1][1] * delta_t;
-	}else{
-		Q[1][1] = 0.0;
-	}
+//	if(u_v != 0.0)
+//	{
+//		Q[1][1] = base_Q[1][1] * delta_t;
+//	}else{
+//		Q[1][1] = 0.0;
+//	}
+
 	Matrix.Multiply((float*)F_x, (float*)P, 3, 3, 3, (float*)aux);
 	Matrix.Transpose((float*)F_x, 3, 3, (float*) F_x_transposed);
 	Matrix.Multiply((float*)aux, (float*)F_x_transposed, 3, 3, 3, (float*)P);
@@ -175,15 +164,17 @@ void EKF::correctHall(float observed_speed)
 	last_time_correction_hall_ = current_time_;
 
 	float delta_t = (float)(time_change) / 1000000.0;
+	float steering_angle_radians = (X[0][0] + X[1][0]) * M_PI/180.0;
 
 	// Update the H matrix
-	H_hall[0][0] = ( -1 * X[2][0] * WIDTH_CENTER_WHEELS_METERS) / ( 2 * WHEELBASE_METERS * cos(X[0][0]*M_PI/180.0) *cos(X[0][0]*M_PI/180.0));
-	H_hall[0][1] = 0.0;
-	H_hall[0][2] = 1 - ( ( WIDTH_CENTER_WHEELS_METERS * tan( X[0][0]*M_PI/180.0 ) ) / ( 2 * WHEELBASE_METERS) );
+	H_hall[0][0] = ( -1 * X[2][0] * WIDTH_CENTER_WHEELS_METERS) /
+			          ( 2 * WHEELBASE_METERS * cos(steering_angle_radians) *cos(steering_angle_radians));
+	H_hall[0][1] = H_hall[0][0];
+	H_hall[0][2] = 1 - ( ( WIDTH_CENTER_WHEELS_METERS * tan( steering_angle_radians ) ) / ( 2 * WHEELBASE_METERS) );
 
 	//Innovation
 	y = observed_speed;
-	z = y - X[2][0] * ( 1 - (WIDTH_CENTER_WHEELS_METERS * tan(X[0][0]*M_PI/180) / WHEELBASE_METERS) );
+	z = y - X[2][0] * ( 1 - ( WIDTH_CENTER_WHEELS_METERS * tan( steering_angle_radians ) / ( 2 * WHEELBASE_METERS) ) );
 
 	//Innovation covariance
 	float aux[1][3];
@@ -216,7 +207,7 @@ void EKF::correctHall(float observed_speed)
 }
 
 
-void EKF::correctEnc(float observed_steering_vel, float u_theta)
+void EKF::correctEnc(float observed_steering_increment)
 {
 	unsigned long int time_change;
 	current_time_ = micros();
@@ -231,43 +222,36 @@ void EKF::correctEnc(float observed_steering_vel, float u_theta)
 	float delta_t = (float)(time_change) / 1000000.0;
 
 	//Innovation
-	if(fabs(observed_steering_vel) < 0.001 && u_theta == 0.0)
-	{
-		X[1][0] = 0.0;
-		P[1][1] = 0.0001;
-	}else{
-		Serial.println("Integrating steering encoder velocity observation!");
-		y = observed_steering_vel;
-		z = y - X[1][0];
+	y = observed_steering_increment;
+	z = y - X[1][0];
 
-		//Innovation covariance
-		float aux[1][3];
-		float H_enc_transposed[3][1];
-		Matrix.Multiply((float*)H_enc, (float*)P, 1, 3, 3, (float*)aux);
-		Matrix.Transpose((float*)H_enc, 1, 3, (float*) H_enc_transposed);
-		Matrix.Multiply((float*)aux, (float*)H_enc_transposed, 1, 3, 1, &Z);
+	//Innovation covariance
+	float aux[1][3];
+	float H_enc_transposed[3][1];
+	Matrix.Multiply((float*)H_enc, (float*)P, 1, 3, 3, (float*)aux);
+	Matrix.Transpose((float*)H_enc, 1, 3, (float*) H_enc_transposed);
+	Matrix.Multiply((float*)aux, (float*)H_enc_transposed, 1, 3, 1, &Z);
 
-		Z = Z + R_enc / delta_t;
+	Z = Z + R_enc / delta_t;
 
-		Matrix.Multiply((float*)P, (float*)H_enc_transposed, 3, 3, 1, (float*)K);
-		K[0][0] = K[0][0] / Z;
-		K[1][0] = K[1][0] / Z;
-		K[2][0] = K[2][0] / Z;
+	Matrix.Multiply((float*)P, (float*)H_enc_transposed, 3, 3, 1, (float*)K);
+	K[0][0] = K[0][0] / Z;
+	K[1][0] = K[1][0] / Z;
+	K[2][0] = K[2][0] / Z;
 
-		//Correction
-		X[0][0] = X[0][0] + K[0][0] * z;
-		X[1][0] = X[1][0] + K[1][0] * z;
-		X[2][0] = X[2][0] + K[2][0] * z;
+	//Correction
+	X[0][0] = X[0][0] + K[0][0] * z;
+	X[1][0] = X[1][0] + K[1][0] * z;
+	X[2][0] = X[2][0] + K[2][0] * z;
 
-		float aux_K[3][1];
-		float K_transposed[1][3];
-		float substractive_term[3][3];
-		Matrix.Multiply((float*)K, &Z, 3, 1, 1, (float*)aux_K);
-		Matrix.Transpose((float*)K, 3, 1, (float*) K_transposed);
-		Matrix.Multiply((float*)aux_K, (float*)K_transposed, 3, 1, 3, (float*)substractive_term);
+	float aux_K[3][1];
+	float K_transposed[1][3];
+	float substractive_term[3][3];
+	Matrix.Multiply((float*)K, &Z, 3, 1, 1, (float*)aux_K);
+	Matrix.Transpose((float*)K, 3, 1, (float*) K_transposed);
+	Matrix.Multiply((float*)aux_K, (float*)K_transposed, 3, 1, 3, (float*)substractive_term);
 
-		Matrix.Subtract((float*)P, (float*)substractive_term, 3, 3, (float*) P);
-	}
+	Matrix.Subtract((float*)P, (float*)substractive_term, 3, 3, (float*) P);
 }
 
 void EKF::correctLs(float observed_theta)
@@ -275,7 +259,7 @@ void EKF::correctLs(float observed_theta)
 	Serial.println("Limit switch observed!");
 	//Innovation
 	y = observed_theta;
-	z = y - X[0][0];
+	z = y - (X[0][0]+X[1][0]); // The prediction will be the initial steering plus the increment
 
 	//Innovation covariance
 	float aux[1][3];
@@ -307,17 +291,18 @@ void EKF::correctLs(float observed_theta)
 
 }
 
-void EKF::getState(float& steering_angle_deg, float& steering_velocity_deg_s, float& speed_ms)
+void EKF::getState(float& initial_steering_angle_deg, float& steering_angle_increment_deg, float& speed_ms)
 {
-	steering_angle_deg = X[0][0];
-	steering_velocity_deg_s = X[1][0];
-	speed_ms = X[2][0];
+	initial_steering_angle_deg   = X[0][0];
+	steering_angle_increment_deg = X[1][0];
+	speed_ms                     = X[2][0];
 }
 
-void EKF::getVariances(float& steering_angle_variance, float& steering_velocity_variance, float& speed_variance)
+void EKF::getVariances(float& initial_steering_angle_variance, float& steering_angle_increment_variance,
+                       float& speed_variance)
 {
-	steering_angle_variance = P[0][0];
-	steering_velocity_variance = P[1][1];
-	speed_variance = P[2][2];
+	initial_steering_angle_variance   = P[0][0];
+	steering_angle_increment_variance = P[1][1];
+	speed_variance                    = P[2][2];
 }
 

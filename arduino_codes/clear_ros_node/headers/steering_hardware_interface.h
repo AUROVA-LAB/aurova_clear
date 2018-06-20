@@ -31,11 +31,11 @@ private:
   int pin_limit_switch_right_;
   int pin_int_limit_switch_;   //Interruption Pin, both limit switch are connected
 
-  EncoderHardwareInterfacePtr steering_encoder_;
-
   float measures_[2]; // pulses, vel
 
 public:
+
+  EncoderHardwareInterfacePtr steering_encoder_;
 	SteeringHardwareInterface();
      ~SteeringHardwareInterface();
 
