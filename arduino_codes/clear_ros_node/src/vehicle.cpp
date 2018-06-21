@@ -264,11 +264,12 @@ void Vehicle::updateFiniteStateMachine(void)
   	  led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 255;
   	  led_rgb_value_[2] = 0;
-//      Serial.println("Calibration mode!!");
-//  	  if( componentsCalibration() )
-//	  {
-//	      operational_mode_ = RESET;
-//	  }
+     //Serial.println("Calibrating, please wait...");
+      //if( componentsCalibration() )
+      //{
+      //  operational_mode_ = RESET;
+      //  Serial.println("Calibration finished!!");
+      //}
 
       operational_mode_ = REMOTE_CONTROL;
   	  steering_actuator_->steering_encoder_->encoderReset(11);
@@ -303,7 +304,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
 	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	timeLastComputeSteering = 0;
-	//Serial.println(measured_state_.steering_angle);
+	if(fabs(steering_measures[0]) < 170) Serial.println(steering_measures[0]);
 	state_estimator_->correctEnc(measured_state_.steering_angle);
   }
 
@@ -355,6 +356,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 		  //Serial.println("right limit!!");
 	  }
 	  Serial.println(measured_state_.steering_angle);
+	  //Serial.println(steering_measures[0]);
 	  state_estimator_->correctLs(observed_theta);
 
   }
@@ -380,10 +382,15 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
   estimated_state_.acceleration = steering_calibration_error;
   estimated_state_.jerk = steering_cummulated_increment;
+  covariance_ackermann_state.drive.acceleration = steering_calibration_error_variance;
+  covariance_ackermann_state.drive.jerk = steering_cummulated_increment_variance;
 
-  // Uncomment to use the measured steering instead of the EKF estimation
-  //estimated_state_.steering_angle = measured_state_.steering_angle;
-  //estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
+  if(!USE_KALMAN_FILTER)
+  {
+	  estimated_state_.steering_angle = measured_state_.steering_angle;
+	  estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
+	  estimated_state_.speed = measured_state_.speed;
+  }
 
   // Passing to messages
   estimated_ackermann_state.drive.speed = estimated_state_.speed;

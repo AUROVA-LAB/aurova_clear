@@ -126,7 +126,7 @@ void EKF::predict(float u_v)
 	float aux[3][3];
     float F_x_transposed[3][3];
 
-	Q[0][0] = base_Q[0][0] * delta_t; //max steering rate times delta_t gives us the max displacement in theta
+	Q[0][0] = base_Q[0][0] * delta_t * base_Q[0][0] * delta_t; //max steering rate times delta_t gives us the max displacement in theta
 	Q[1][1] = base_Q[1][1] * delta_t;
 
 //	if(u_v != 0.0)

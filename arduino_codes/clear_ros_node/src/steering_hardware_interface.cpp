@@ -121,18 +121,23 @@ bool SteeringHardwareInterface::steeringCalibration(void)
 		case CENTERED:
 			Serial.println("Searching steering center!!");
 			if(measures_[0] < PULSES_TO_CENTER_FROM_RIGHT - TOLERANCE_PULSES_FIND_ZERO_POS)
+			{
+				//Serial.println("Going left!!");
 				steering_speed = ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
 
-			else if (measures_[0] > PULSES_TO_CENTER_FROM_RIGHT + TOLERANCE_PULSES_FIND_ZERO_POS)
-				steering_speed = -1*ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
+			}else{
+				if (measures_[0] > PULSES_TO_CENTER_FROM_RIGHT + TOLERANCE_PULSES_FIND_ZERO_POS)
+				{
+					steering_speed = -1*ABS_MOTOR_PWM_FOR_FIND_ZERO_POS;
 
-			else
-			{
-				steeringMotor(0);
-				next_state = RIGHT;
-				delay(150);
-				steering_encoder_->encoderReset(11);
-				return true;
+				}else{
+					//Serial.println("Calibration finished!!");
+					steeringMotor(0);
+					next_state = RIGHT;
+					delay(150);
+					steering_encoder_->encoderReset(11);
+					return true;
+				}
 			}
 			break;
 	}

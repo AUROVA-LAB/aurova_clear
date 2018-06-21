@@ -28,19 +28,21 @@ const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 
 
 //! Sampling time encoders using I2C
-const float  SAMPLING_HERTZ_SPEED = 2.0; //Hz
+const float  SAMPLING_HERTZ_SPEED = 10;//2.0; //Hz
 const float SENSOR_HALL_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
 
 //------------STEERING-----------//
+const float MAX_STEERING_VELOCITY = 5.0; //degrees per second
 const float MIN_PWM_TO_ACTUATE_MOTOR = 0.0;
 
 const float  SAMPLING_HERTZ_STEERING = 20.0;
 
-const float ABS_MAX_RIGHT_ANGLE_DEG = 25.75; //Experimentally measured
-const float ABS_MAX_LEFT_ANGLE_DEG = 28.5; //Experimentally measured
+const float ste_offset = 0.76;
+const float ABS_MAX_RIGHT_ANGLE_DEG = 24.45  + ste_offset; //Experimentally measured
+const float ABS_MAX_LEFT_ANGLE_DEG = 27.48   - ste_offset; //Experimentally measured
 
 //const float ABS_MAX_STEERING_ANGLE_DEG = 23.0; // To avoid the mechanical limits
-const float ABS_MAX_STEERING_ANGLE_DEG = 35.0; // To allow observing the mechanical limits
+const float ABS_MAX_STEERING_ANGLE_DEG = 30.0; // To allow observing the mechanical limits
 
 /////////////////////////////////////
 //TODO!!! Check this values!!!
@@ -52,9 +54,9 @@ const float ABS_MAX_STEERING_SWEEP_DEG = ABS_MAX_RIGHT_ANGLE_DEG+ABS_MAX_LEFT_AN
 
 const float PULSES_TO_DEG = 360.0 / (STEERING_ENCODER_BASE_RESOLUTION * STEERING_REDUCTION_RATIO);//ABS_MAX_STEERING_SWEEP_DEG/ABS_MAX_STEERING_PULSES; //0.005265;//0.0044;
 
-const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = PULSES_TO_DEG;// * 2.0;
+const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = PULSES_TO_DEG;
 
-const float PULSES_TO_CENTER_FROM_RIGHT = 4938;//ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG; //4938; Experimental
+const float PULSES_TO_CENTER_FROM_RIGHT = ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG; //4938; Experimental
 /////////////////////////////////////////
 
 const int ABS_MAX_STEERING_MOTOR_PWM = 100;
@@ -101,19 +103,18 @@ const float NORMALIZING_PID_MIN_VALUE = -1.0;
 
 const float SDKF_A = 1.0;
 const float SDKF_B =  0.3; // G_gato = 0.5  G_llano = 0.3
-const float SDKF_Q_COVARIANCE = 0.005;
+const float SDKF_Q_COVARIANCE = 0.007; //0.005;
 const float SDKF_R_COVARIANCE = (SENSOR_HALL_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_SPEED)*
 							      (SENSOR_HALL_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_SPEED);
 
 const float SPEED_PREDICTION_GAIN = 0.3;
 const float STEERING_PREDICTION_GAIN = 0.3;
 
-const float STEERING_ENCODER_Q_COVARIANCE = 10.0;//0.005;
 const float MAX_STEERING_RATE = 50.0; //degrees per second
 
 const float STEERING_ENCODER_R_COVARIANCE = (STEERING_SENSOR_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_STEERING)*
 		                                      (STEERING_SENSOR_BASE_NOISE_PER_HERTZ * SAMPLING_HERTZ_STEERING);
 
-const float STEERING_LIMIT_SWITCH_COVARIANCE = 2.0 * 2.0; //Uncertainty of about one degree in our calibration process
+const float STEERING_LIMIT_SWITCH_COVARIANCE = 2.0 * 2.0; //Uncertainty in our calibration process (degrees)
 
 #endif /* HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_ */
