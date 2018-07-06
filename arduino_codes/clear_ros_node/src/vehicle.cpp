@@ -426,7 +426,7 @@ void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ack
     desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
-void Vehicle::calculateCommandOutputs(void)
+void Vehicle::calculateCommandOutputs(float max_recommended_speed)
 {
   switch (operational_mode_)
   {
@@ -438,7 +438,12 @@ void Vehicle::calculateCommandOutputs(void)
 	  }
 	  else
 	  {
-		  desired_state_.speed = remote_control_.desired_state.speed;
+		  if(remote_control_.desired_state.speed < max_recommended_speed)
+		  {
+			  desired_state_.speed = remote_control_.desired_state.speed;
+		  }else{
+			  desired_state_.speed = max_recommended_speed;
+		  }
 		  checkSetpoint(desired_state_.speed);
 
 
@@ -461,6 +466,11 @@ void Vehicle::calculateCommandOutputs(void)
       break;
 
     case ROS_CONTROL:
+	  if(desired_state_.speed > max_recommended_speed)
+	  {
+		  desired_state_.speed = max_recommended_speed;
+	  }
+
       if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	  {
     	  desired_state_.speed = 0.0;

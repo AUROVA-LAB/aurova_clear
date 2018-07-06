@@ -15,6 +15,7 @@
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
+#include "std_msgs/Float32.h"
 #include "std_msgs/Int16MultiArray.h"
 #include "Arduino.h"
 #include <avr/wdt.h>
@@ -45,6 +46,15 @@ void desiredVerboseLevelCB(const std_msgs::Int16& desired_verbose_level_msg)
 ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level", &desiredVerboseLevelCB);
 
 
+/*! \brief Callback to read the maximum recommended speed
+ *
+ */
+float max_recommended_speed = 0.0;
+void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
+{
+	max_recommended_speed = max_recommended_speed_msg.data;
+}
+ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("reactive_hokuyo_alg_node/hokuyo_recommended_velocity", &max_recommended_speedCB);
 
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
@@ -271,6 +281,8 @@ void setup()
   nh.advertise(estimated_ackermann_publisher);
   nh.advertise(covariance_ackermann_publisher);
 
+  nh.subscribe(max_recommended_speed_subscriber);
+
   wdt_enable(WDTO_500MS);
 }
 
@@ -388,7 +400,7 @@ void loop()
   else
 	time_change = 4294967295 - last_time;
 
-  AckermannVehicle.calculateCommandOutputs();
+  AckermannVehicle.calculateCommandOutputs(max_recommended_speed);
 
   last_time = now;
 
