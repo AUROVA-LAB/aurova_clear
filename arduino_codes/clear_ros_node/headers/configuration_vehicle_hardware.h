@@ -10,6 +10,9 @@
 
 #include <math.h>
 
+//------------SAFETY------------//
+const int MAX_TIME_WITHOUT_REACTIVE_MILLIS = 200;
+
 //------------VEHICLE-----------//
 const float WHEELBASE_METERS = 1.05;
 const float MIN_CURVATURE_RADIUS_METERS = 4.0;
@@ -59,7 +62,7 @@ const float STEERING_SENSOR_BASE_NOISE_PER_HERTZ = PULSES_TO_DEG;
 const float PULSES_TO_CENTER_FROM_RIGHT = ABS_MAX_RIGHT_ANGLE_DEG/PULSES_TO_DEG; //4938; Experimental
 /////////////////////////////////////////
 
-const int ABS_MAX_STEERING_MOTOR_PWM = 100;
+const int ABS_MAX_STEERING_MOTOR_PWM = 255;
 const int ABS_MOTOR_PWM_FOR_CALIBRATION = 70;
 const int ABS_MOTOR_PWM_FOR_FIND_ZERO_POS = 50;
 const int TOLERANCE_PULSES_FIND_ZERO_POS = 20;

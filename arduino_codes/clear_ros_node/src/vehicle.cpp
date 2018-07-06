@@ -209,7 +209,7 @@ void Vehicle::getOperationalMode(int& current_operational_mode)
 	current_operational_mode = operational_mode_;
 }
 
-void Vehicle::updateFiniteStateMachine(void)
+void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 {
   if(operational_mode_ != last_operational_mode_)
   {
@@ -218,7 +218,10 @@ void Vehicle::updateFiniteStateMachine(void)
     last_operational_mode_ = operational_mode_;
   }
 
-
+  if (millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS && flag_speed_recommendation_active_)
+  {
+	  operational_mode_ = EMERGENCY_STOP;
+  }
 
   switch ( operational_mode_ )
   {

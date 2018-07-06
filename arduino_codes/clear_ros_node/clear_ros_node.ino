@@ -50,11 +50,14 @@ ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level
  *
  */
 
+elapsedMillis reactive_watchdog = 0;
 float max_recommended_speed = 0.0;
+int millisSinceLastReactiveUpdate = 0;
 void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
 {
 	max_recommended_speed = max_recommended_speed_msg.data;
 	AckermannVehicle.setFlagSpeedRecommendationActive(true);
+	reactive_watchdog = 0;
 	//TODO add a watchdog to detect if the recommendator node is down
 }
 ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("reactive_hokuyo_alg_node/hokuyo_recommended_velocity", &max_recommended_speedCB);
@@ -394,7 +397,8 @@ void loop()
   if(AckermannVehicle.getOperationalMode() != CALIBRATION)
 	  AckermannVehicle.readRemoteControl();
 
-  AckermannVehicle.updateFiniteStateMachine();
+  millisSinceLastReactiveUpdate = reactive_watchdog;
+  AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
   now = micros();
 

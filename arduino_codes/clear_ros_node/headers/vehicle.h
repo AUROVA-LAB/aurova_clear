@@ -119,7 +119,7 @@ public:
   /*!
    * Implements the logic to change between states: Reset, RC, ROS control and Emergency Stop
    */
-  void updateFiniteStateMachine(void);
+  void updateFiniteStateMachine(int millisSinceLastReactiveUpdate);
 
   /*!
    * Maps the variables in the ROS message to the inner State struct variables: Speed, Acceleration,
