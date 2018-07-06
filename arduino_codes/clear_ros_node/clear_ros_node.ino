@@ -49,10 +49,13 @@ ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level
 /*! \brief Callback to read the maximum recommended speed
  *
  */
+
 float max_recommended_speed = 0.0;
 void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
 {
 	max_recommended_speed = max_recommended_speed_msg.data;
+	AckermannVehicle.setFlagSpeedRecommendationActive(true);
+	//TODO add a watchdog to detect if the recommendator node is down
 }
 ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("reactive_hokuyo_alg_node/hokuyo_recommended_velocity", &max_recommended_speedCB);
 

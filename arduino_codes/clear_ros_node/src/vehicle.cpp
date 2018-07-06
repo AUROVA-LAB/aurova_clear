@@ -93,6 +93,8 @@ Vehicle::Vehicle()
   left_steering_limit_switch_position_ = ABS_MAX_LEFT_ANGLE_DEG;
   right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
 
+  flag_limiting_speed_by_reactive_ = false;
+  flag_speed_recommendation_active_ = false;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
@@ -277,6 +279,13 @@ void Vehicle::updateFiniteStateMachine(void)
 
   }
 
+  if(flag_limiting_speed_by_reactive_ && flag_speed_recommendation_active_)
+  {
+  	led_rgb_value_[0] = 0;
+  	led_rgb_value_[1] = 255;
+  	led_rgb_value_[2] = 255;
+  }
+
   analogWrite(LED_R, led_rgb_value_[0]);
   analogWrite(LED_G, led_rgb_value_[1]);
   analogWrite(LED_B, led_rgb_value_[2]);
@@ -438,11 +447,13 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
 	  }
 	  else
 	  {
-		  if(remote_control_.desired_state.speed < max_recommended_speed)
+		  if(remote_control_.desired_state.speed < max_recommended_speed || !flag_speed_recommendation_active_)
 		  {
 			  desired_state_.speed = remote_control_.desired_state.speed;
+			  flag_limiting_speed_by_reactive_ = false;
 		  }else{
 			  desired_state_.speed = max_recommended_speed;
+			  flag_limiting_speed_by_reactive_ = true;
 		  }
 		  checkSetpoint(desired_state_.speed);
 
@@ -466,9 +477,12 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
       break;
 
     case ROS_CONTROL:
-	  if(desired_state_.speed > max_recommended_speed)
+	  if(desired_state_.speed < max_recommended_speed || !flag_speed_recommendation_active_ )
 	  {
+		  flag_limiting_speed_by_reactive_ = false;
+	  }else{
 		  desired_state_.speed = max_recommended_speed;
+		  flag_limiting_speed_by_reactive_ = true;
 	  }
 
       if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
@@ -650,3 +664,8 @@ void Vehicle::resetSpeed()
 	steering_estimator_->resetSDKF();
 }
 */
+
+void Vehicle::setFlagSpeedRecommendationActive(bool flag_state)
+{
+	flag_speed_recommendation_active_ = flag_state;
+}

@@ -53,6 +53,8 @@ private:
 
   bool desired_steering_state_reached_;
   bool desired_traslational_state_reached_;
+  bool flag_limiting_speed_by_reactive_;
+  bool flag_speed_recommendation_active_;
 
   RemoteControl remote_control_;
 
@@ -201,8 +203,9 @@ public:
   void getErrorCode(int& requested_error_code);
   int  getErrorCode(void);
 
-
   void resetSpeed();
+
+  void setFlagSpeedRecommendationActive(bool flag_state);
 
 };
 
