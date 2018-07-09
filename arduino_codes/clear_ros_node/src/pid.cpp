@@ -11,7 +11,7 @@
 #include "../headers/arduino_ros_interface.h"
 #include "Arduino.h"
 
-PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float kd) // @suppress("Class members should be properly initialized")
+PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float kd, float tolerance_to_output_zero) // @suppress("Class members should be properly initialized")
 {
 	kp_ = kp;
 	ki_ = ki;
@@ -36,6 +36,8 @@ PID::PID(float *input, float* output, float* setpoint, float kp, float ki, float
 
 	max_ = 0.0;
 	min_ = 0.0;
+
+	tolerance_threshold_to_output_zero_ = tolerance_to_output_zero;
 }
 
 PID::~PID()
@@ -111,7 +113,12 @@ void PID::computePID(float scale_input, float scale_setpoint, float scale_output
     }
 
     // Scale output value
-    *output_ = output * scale_output;
+    if(fabs(output * scale_output) > tolerance_threshold_to_output_zero_ )
+    {
+    	*output_ = output * scale_output;
+    }else{
+    	*output_ = 0.0;
+    }
 
     //Serial.println(*output_);
 

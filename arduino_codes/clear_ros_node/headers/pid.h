@@ -37,6 +37,8 @@ private:
   unsigned long int current_time_, last_time_;
 
   float max_, min_;
+  float tolerance_threshold_to_output_zero_; //if the absolute value of the output is below
+                                            //this threshold, the output is set to zero
 
 
   float* input_;
@@ -47,7 +49,7 @@ private:
 
 public:
 
-  PID(float* input, float* output, float* setpoint, float kp, float ki, float kd);
+  PID(float* input, float* output, float* setpoint, float kp, float ki, float kd, float tolerance_to_output_zero);
   ~PID();
 
   /*!

@@ -20,6 +20,7 @@
 #include "../headers/steering_hardware_interface.h"
 #include "../headers/pid.h"
 #include "sdkf.h"
+#include "EKF.h"
 #include "nav_msgs/Odometry.h"
 
 struct State
@@ -52,6 +53,8 @@ private:
 
   bool desired_steering_state_reached_;
   bool desired_traslational_state_reached_;
+  bool flag_limiting_speed_by_reactive_;
+  bool flag_speed_recommendation_active_;
 
   RemoteControl remote_control_;
 
@@ -68,6 +71,9 @@ private:
   float speed_volts_pid_;
   float steering_angle_pwm_pid_;
 
+  float left_steering_limit_switch_position_;
+  float right_steering_limit_switch_position_;
+
   DJI_DBUSPtr dBus_;
 
   SpeedHardwareInterfacePtr speed_actuator_;
@@ -76,6 +82,8 @@ private:
   byte led_rgb_value_[3];
 
   SDKFPtr speed_estimator_;
+
+  EKFPtr state_estimator_;
 
 
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -111,7 +119,7 @@ public:
   /*!
    * Implements the logic to change between states: Reset, RC, ROS control and Emergency Stop
    */
-  void updateFiniteStateMachine(void);
+  void updateFiniteStateMachine(int millisSinceLastReactiveUpdate);
 
   /*!
    * Maps the variables in the ROS message to the inner State struct variables: Speed, Acceleration,
@@ -138,7 +146,7 @@ public:
    * forward velocity and steering actuators. The inputs are the measured and desired states.
    * This function is used in ROS control and Reset modes
    */
-  void calculateCommandOutputs(void);
+  void calculateCommandOutputs(float max_recommended_speed);
 
   /*!
    * Writes to the Arduino outputs the required voltages and PWM values
@@ -174,6 +182,11 @@ public:
    */
   void getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains);
 
+  void setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position);
+
+  void getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position);
+
+
   /*!
    * returns the current operational mode, that is the same that the current
    * state of the finite state machine: Reset, RC, ROS control or Emergency Stop
@@ -190,8 +203,9 @@ public:
   void getErrorCode(int& requested_error_code);
   int  getErrorCode(void);
 
-
   void resetSpeed();
+
+  void setFlagSpeedRecommendationActive(bool flag_state);
 
 };
 

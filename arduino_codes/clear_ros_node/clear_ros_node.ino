@@ -15,6 +15,7 @@
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
+#include "std_msgs/Float32.h"
 #include "std_msgs/Int16MultiArray.h"
 #include "Arduino.h"
 #include <avr/wdt.h>
@@ -45,7 +46,20 @@ void desiredVerboseLevelCB(const std_msgs::Int16& desired_verbose_level_msg)
 ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level", &desiredVerboseLevelCB);
 
 
+/*! \brief Callback to read the maximum recommended speed
+ *
+ */
 
+elapsedMillis reactive_watchdog = 0;
+float max_recommended_speed = 0.0;
+int millisSinceLastReactiveUpdate = 0;
+void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
+{
+	max_recommended_speed = max_recommended_speed_msg.data;
+	AckermannVehicle.setFlagSpeedRecommendationActive(true);
+	reactive_watchdog = 0;
+}
+ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("velocity_recommender_alg_node/forward_recommended_velocity", &max_recommended_speedCB);
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
  *
@@ -145,6 +159,27 @@ ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desi
 ros::Publisher required_steering_pid_gains_publisher("echo_desired_steering_pid_gains", &ste_pid_gains_echo);
 
 
+/*! \brief CallBack to read the steering control PID gains (kp, ki, and kd)
+ *
+ * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
+ */
+std_msgs::Float32MultiArray desired_limit_switches_position_LR;
+std_msgs::Float32MultiArray echo_desired_limit_switches_position_LR;
+void limitSwitchesCalibrationCB(const std_msgs::Float32MultiArray& limit_switches_msg)
+{
+  desired_limit_switches_position_LR = limit_switches_msg;
+  desired_limit_switches_position_LR.data_length = 2;
+
+  AckermannVehicle.setLimitSwitchesPositionLR(desired_limit_switches_position_LR);
+
+}
+ros::Subscriber<std_msgs::Float32MultiArray> limit_switches_calibration_subscriber("desired_limit_switches_position_LR",
+                                                                           &limitSwitchesCalibrationCB);
+
+ros::Publisher required_limit_switches_position_publisher("echo_desired_limit_switches_position_LR",
+		                                                   &echo_desired_limit_switches_position_LR);
+
+
 
 /*!
  * Publisher to communicate to ROS the actual signals applied to the actuators (speed and steering)
@@ -196,6 +231,12 @@ void reserveDynamicMemory(void)
 
   ste_pid_gains_echo.data_length = NUM_OF_PID_GAINS;
   ste_pid_gains_echo.data = (float *)malloc(sizeof(float) * NUM_OF_PID_GAINS);
+
+  desired_limit_switches_position_LR.data_length = NUM_OF_STEERING_LIMIT_SWITCHES;
+  desired_limit_switches_position_LR.data = (float *)malloc(sizeof(float) * NUM_OF_STEERING_LIMIT_SWITCHES);
+
+  echo_desired_limit_switches_position_LR.data_length = NUM_OF_STEERING_LIMIT_SWITCHES;
+  echo_desired_limit_switches_position_LR.data = (float *)malloc(sizeof(float) * NUM_OF_STEERING_LIMIT_SWITCHES);
 }
 
 
@@ -235,11 +276,16 @@ void setup()
   nh.subscribe(steering_pid_gains_subscriber);
   nh.advertise(required_steering_pid_gains_publisher);
 
+  nh.subscribe(limit_switches_calibration_subscriber);
+  nh.advertise(required_limit_switches_position_publisher);
+
   nh.advertise(arduino_status_publisher);
   nh.advertise(speed_volts_and_steering_pwm);
 
   nh.advertise(estimated_ackermann_publisher);
   nh.advertise(covariance_ackermann_publisher);
+
+  nh.subscribe(max_recommended_speed_subscriber);
 
   wdt_enable(WDTO_500MS);
 }
@@ -309,6 +355,9 @@ void sendOutputsToROS(void)
 
     AckermannVehicle.getSteeringPIDGains(ste_pid_gains_echo);
     required_steering_pid_gains_publisher.publish(&ste_pid_gains_echo);
+
+    AckermannVehicle.getLimitSwitchesPositionLR(echo_desired_limit_switches_position_LR);
+    required_limit_switches_position_publisher.publish(&echo_desired_limit_switches_position_LR);
   }
   if (verbose_level >= MIN_VERBOSE_LEVEL)
   {
@@ -346,7 +395,8 @@ void loop()
   if(AckermannVehicle.getOperationalMode() != CALIBRATION)
 	  AckermannVehicle.readRemoteControl();
 
-  AckermannVehicle.updateFiniteStateMachine();
+  millisSinceLastReactiveUpdate = reactive_watchdog;
+  AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
   now = micros();
 
@@ -355,7 +405,7 @@ void loop()
   else
 	time_change = 4294967295 - last_time;
 
-  AckermannVehicle.calculateCommandOutputs();
+  AckermannVehicle.calculateCommandOutputs(max_recommended_speed);
 
   last_time = now;
 

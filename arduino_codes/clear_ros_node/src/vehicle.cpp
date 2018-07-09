@@ -13,6 +13,7 @@
 #include "../headers/hardware_description_constants.h"
 #include "../headers/configuration_vehicle_hardware.h"
 #include "../headers/pid.h"
+//#include "../headers/EKF.h"
 
 const unsigned int  SAMPLING_TIME_SPEED = (int)((1.0/SAMPLING_HERTZ_SPEED)*1000.0); //ms
 const unsigned int  SAMPLING_TIME_STEERING = (int)((1.0/SAMPLING_HERTZ_STEERING)*1000.0); //ms
@@ -89,6 +90,11 @@ Vehicle::Vehicle()
   speed_volts_pid_ = 0.0;
   steering_angle_pwm_pid_ = 0.0;
 
+  left_steering_limit_switch_position_ = ABS_MAX_LEFT_ANGLE_DEG;
+  right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
+
+  flag_limiting_speed_by_reactive_ = false;
+  flag_speed_recommendation_active_ = false;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
@@ -99,15 +105,19 @@ Vehicle::Vehicle()
   speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
-  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI, SPEED_KD);
+  speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed,
+		                        SPEED_KP, SPEED_KI, SPEED_KD, MIN_VOLTS_TO_ACTUATE_MOTOR);
+
   speed_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  speed_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
+  speed_estimator_ = new SDKF(SDKF_A, SDKF_B, 0.0, SDKF_Q_COVARIANCE, SDKF_R_COVARIANCE);
 
-  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD);
+  steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_, &desired_state_.steering_angle,
+		                           STEERING_KP, STEERING_KI, STEERING_KD, MIN_PWM_TO_ACTUATE_MOTOR);
+
   steering_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  //TODO: steering_estimator_ = new SDKF(KALMAN_A, KALMAN_B, 0.0, KALMAN_Q_COVARIANCE, KALMAN_R_COVARIANCE);
+  state_estimator_ = new EKF();
 
   led_rgb_value_[0] = 0;
   led_rgb_value_[1] = 0;
@@ -126,7 +136,7 @@ Vehicle::Vehicle()
   pinMode(BRAKE,OUTPUT);
   digitalWrite(BRAKE,HIGH);
 
-  //desynchronizing sampling times for I2C
+  //desynchronising sampling times for I2C
   if(SAMPLING_TIME_SPEED > SAMPLING_TIME_STEERING)
   {
 	  timeLastComputeSteering = SAMPLING_TIME_STEERING * (float)(fabs(SAMPLING_TIME_STEERING-SAMPLING_TIME_SPEED))/SAMPLING_TIME_SPEED;
@@ -182,12 +192,24 @@ void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains
 	steering_controller_ -> getPIDGains(current_pid_gains.data[0],current_pid_gains.data[1],current_pid_gains.data[2]);
 }
 
+void Vehicle::setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position)
+{
+	left_steering_limit_switch_position_ = desired_limit_switches_position.data[0];
+	right_steering_limit_switch_position_ = desired_limit_switches_position.data[1];
+}
+
+void Vehicle::getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position)
+{
+	current_limit_switches_position.data[0] = left_steering_limit_switch_position_;
+	current_limit_switches_position.data[1] = right_steering_limit_switch_position_;
+}
+
 void Vehicle::getOperationalMode(int& current_operational_mode)
 {
 	current_operational_mode = operational_mode_;
 }
 
-void Vehicle::updateFiniteStateMachine(void)
+void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 {
   if(operational_mode_ != last_operational_mode_)
   {
@@ -196,7 +218,10 @@ void Vehicle::updateFiniteStateMachine(void)
     last_operational_mode_ = operational_mode_;
   }
 
-
+  if (millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS && flag_speed_recommendation_active_)
+  {
+	  operational_mode_ = EMERGENCY_STOP;
+  }
 
   switch ( operational_mode_ )
   {
@@ -213,7 +238,7 @@ void Vehicle::updateFiniteStateMachine(void)
       }
       */
 
-      operational_mode_ = CALIBRATION;
+      //operational_mode_ = CALIBRATION;
       break;
 
     case EMERGENCY_STOP:
@@ -240,17 +265,28 @@ void Vehicle::updateFiniteStateMachine(void)
       break;
 
     case CALIBRATION:
+
   	  led_rgb_value_[0] = 255;
   	  led_rgb_value_[1] = 255;
   	  led_rgb_value_[2] = 0;
+     //Serial.println("Calibrating, please wait...");
+      //if( componentsCalibration() )
+      //{
+      //  operational_mode_ = RESET;
+      //  Serial.println("Calibration finished!!");
+      //}
 
-  	  if( componentsCalibration() )
-	  {
-	      operational_mode_ = RESET;
-	  }
-
+      operational_mode_ = REMOTE_CONTROL;
+  	  steering_actuator_->steering_encoder_->encoderReset(11);
 	  break;
 
+  }
+
+  if(flag_limiting_speed_by_reactive_ && flag_speed_recommendation_active_)
+  {
+  	led_rgb_value_[0] = 0;
+  	led_rgb_value_[1] = 255;
+  	led_rgb_value_[2] = 255;
   }
 
   analogWrite(LED_R, led_rgb_value_[0]);
@@ -266,25 +302,25 @@ int Vehicle::getOperationalMode(void)
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
 		                  ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
-  // We always make the prediction step
-  float covariance_speed;
-
-  if(USE_KALMAN_FILTER && prediction_kalman_filter > time_to_predict)
+  if(prediction_kalman_filter >= time_to_predict)
   {
-    speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance_speed);
-    prediction_kalman_filter = 0;
+    state_estimator_->predict(speed_volts_);
+	prediction_kalman_filter = 0;
   }
 
 
-  if(timeLastComputeSteering > SAMPLING_TIME_STEERING)
+  if(timeLastComputeSteering >= SAMPLING_TIME_STEERING)
   {
 	steering_measures = steering_actuator_->getSteeringMeasures();
-	timeLastComputeSteering = 0;
 
-	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
 	measured_state_.steering_angle_velocity = steering_measures[1]*PULSES_TO_DEG;
+	measured_state_.steering_angle = steering_measures[0]*PULSES_TO_DEG;
+	timeLastComputeSteering = 0;
+	if(fabs(steering_measures[0]) < 170) Serial.println(steering_measures[0]);
+	state_estimator_->correctEnc(measured_state_.steering_angle);
   }
-  if(timeLastComputeSpeed > SAMPLING_TIME_SPEED)
+
+  if(timeLastComputeSpeed >= SAMPLING_TIME_SPEED)
   {
     speed_measures = speed_actuator_->getSpeedMeasures();
 	timeLastComputeSpeed = 0;
@@ -293,40 +329,81 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 	if(!speed_actuator_->getFlagForward()) direction = -1.0;
 
 	float speed_left_rear_wheel = speed_measures[0]*METERS_PER_PULSE*direction;
-	float steering_radians      = measured_state_.steering_angle * M_PI / 180.0;
-	float center_wheel_factor   = WHEELBASE_METERS / (WHEELBASE_METERS - (WIDTH_CENTER_WHEELS_METERS/2.0)*tan(steering_radians));
 
-	float speed_virtual_central_wheel = speed_left_rear_wheel * center_wheel_factor;
-
-	measured_state_.speed = speed_virtual_central_wheel;
+	measured_state_.speed = speed_left_rear_wheel;
 	measured_state_.acceleration = speed_measures[1]*METERS_PER_PULSE; // TODO--> check if direction is also needed here
 	measured_state_.jerk = speed_measures[2]*METERS_PER_PULSE;
 
-	// To create outliers
-	/*count++;
-	if(count > 20)
-	{
-		measured_state_.speed = 10;
-		count = 0;
-	}*/
-
-	if(USE_KALMAN_FILTER)
-	{
-	  //speed_estimator_->make_prediction(speed_volts_, estimated_state_.speed, covariance);
-	  speed_estimator_->make_correction(measured_state_.speed, estimated_state_.speed, covariance_speed);
-	}
+    state_estimator_->correctHall(speed_left_rear_wheel);
   }
 
-  if(!USE_KALMAN_FILTER) estimated_state_.speed = measured_state_.speed;
+  //Serial.println(steering_actuator_->readLimitSwitches());
+  //int ls = 0;
+  //		  steering_actuator_->readLimitSwitches();
+  if(steering_actuator_->readLimitSwitches())
+  {
+	  //Serial.print("Limit!!");
+	  float observed_theta = 0.0;
+//	  if(ls==1)
+//	  {
+//		  observed_theta = left_steering_limit_switch_position_;
+//		  //measured_state_.steering_angle = observed_theta;
+//		  //Serial.println("left limit!!");
+//	  }
+//	  if(ls==2)
+//	  {
+//		  observed_theta = -1 * right_steering_limit_switch_position_;
+//		  //measured_state_.steering_angle = observed_theta;
+//		  //Serial.println("right limit!!");
+//	  }
+//      //Serial.print("Steering angle = ");
+//      //Serial.println(measured_state_.steering_angle);
+//	  //state_estimator_->correctLs(observed_theta);
+	  if(estimated_state_.steering_angle > 0.0)
+	  {
+		  observed_theta = left_steering_limit_switch_position_;
+		  //Serial.println("left limit!!");
+	  }else{
+		  observed_theta = -1 * right_steering_limit_switch_position_;
+		  //Serial.println("right limit!!");
+	  }
+	  Serial.println(measured_state_.steering_angle);
+	  //Serial.println(steering_measures[0]);
+	  state_estimator_->correctLs(observed_theta);
 
-  //estimated_state_.acceleration = measured_state_.acceleration;
-  //estimated_state_.jerk = measured_state_.jerk;
+  }
 
-  estimated_state_.steering_angle = measured_state_.steering_angle;
+  float steering_calibration_error = 0.0;
+  float steering_cummulated_increment = 0.0;
+  state_estimator_->getState(steering_calibration_error,
+		  	                 steering_cummulated_increment,
+							 estimated_state_.speed);
+
+  estimated_state_.steering_angle = steering_calibration_error + steering_cummulated_increment;
   estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
 
 
-  ///////////////////////////////////////////////////////////////
+  float steering_calibration_error_variance = 0.0;
+  float steering_cummulated_increment_variance = 0.0;
+  state_estimator_->getVariances(steering_calibration_error_variance,
+		                         steering_cummulated_increment_variance,
+								 covariance_ackermann_state.drive.speed);
+
+  covariance_ackermann_state.drive.steering_angle = steering_calibration_error_variance + steering_cummulated_increment_variance;
+  covariance_ackermann_state.drive.steering_angle_velocity = 0.0;
+
+  estimated_state_.acceleration = steering_calibration_error;
+  estimated_state_.jerk = steering_cummulated_increment;
+  covariance_ackermann_state.drive.acceleration = steering_calibration_error_variance;
+  covariance_ackermann_state.drive.jerk = steering_cummulated_increment_variance;
+
+  if(!USE_KALMAN_FILTER)
+  {
+	  estimated_state_.steering_angle = measured_state_.steering_angle;
+	  estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
+	  estimated_state_.speed = measured_state_.speed;
+  }
+
   // Passing to messages
   estimated_ackermann_state.drive.speed = estimated_state_.speed;
   estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
@@ -334,9 +411,8 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
   estimated_ackermann_state.drive.steering_angle = estimated_state_.steering_angle;
   estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
-
-  covariance_ackermann_state.drive.speed = covariance_speed;
 }
+
 
 void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
 {
@@ -362,7 +438,7 @@ void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ack
     desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
-void Vehicle::calculateCommandOutputs(void)
+void Vehicle::calculateCommandOutputs(float max_recommended_speed)
 {
   switch (operational_mode_)
   {
@@ -374,7 +450,14 @@ void Vehicle::calculateCommandOutputs(void)
 	  }
 	  else
 	  {
-		  desired_state_.speed = remote_control_.desired_state.speed;
+		  if(remote_control_.desired_state.speed < max_recommended_speed || !flag_speed_recommendation_active_)
+		  {
+			  desired_state_.speed = remote_control_.desired_state.speed;
+			  flag_limiting_speed_by_reactive_ = false;
+		  }else{
+			  desired_state_.speed = max_recommended_speed;
+			  flag_limiting_speed_by_reactive_ = true;
+		  }
 		  checkSetpoint(desired_state_.speed);
 
 
@@ -383,14 +466,13 @@ void Vehicle::calculateCommandOutputs(void)
 		  if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	      {
 			  desired_state_.speed = 0.0;
-			  estimated_state_.speed = 0.0;
+			  //estimated_state_.speed = 0.0;
 
 			  speed_volts_pid_ = 0.0;
 			  resetSpeed();
 		  }
 		  else
 		  {
-
 			  speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_VOLTS);
 		  }
 		  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_MOTOR_PWM);
@@ -398,6 +480,14 @@ void Vehicle::calculateCommandOutputs(void)
       break;
 
     case ROS_CONTROL:
+	  if(desired_state_.speed < max_recommended_speed || !flag_speed_recommendation_active_ )
+	  {
+		  flag_limiting_speed_by_reactive_ = false;
+	  }else{
+		  desired_state_.speed = max_recommended_speed;
+		  flag_limiting_speed_by_reactive_ = true;
+	  }
+
       if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
 	  {
     	  desired_state_.speed = 0.0;
@@ -516,11 +606,17 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
 	  steering_angle_pwm_ = 0;
   }
 
-  else if(operational_mode_)
+  else if(operational_mode_ != CALIBRATION)
   {
 	  speed_volts_ = speed_volts_pid_;
 	  if(fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE) digitalWrite(BRAKE,LOW);
-	  steering_angle_pwm_ = steering_angle_pwm_pid_;
+	  //int ls = steering_actuator_->readLimitSwitches();
+	  //if(ls != 0)
+	  //{
+	  //	  steering_angle_pwm_ = 0;
+	  //}else{
+		  steering_angle_pwm_ = steering_angle_pwm_pid_;
+	  //}
   }
 
   if(timeBeforeBrake > MAX_TIME_ZERO_VOLTS_TO_BRAKE)
@@ -571,3 +667,8 @@ void Vehicle::resetSpeed()
 	steering_estimator_->resetSDKF();
 }
 */
+
+void Vehicle::setFlagSpeedRecommendationActive(bool flag_state)
+{
+	flag_speed_recommendation_active_ = flag_state;
+}
