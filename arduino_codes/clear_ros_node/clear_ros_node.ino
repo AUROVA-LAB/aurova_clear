@@ -58,10 +58,8 @@ void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
 	max_recommended_speed = max_recommended_speed_msg.data;
 	AckermannVehicle.setFlagSpeedRecommendationActive(true);
 	reactive_watchdog = 0;
-	//TODO add a watchdog to detect if the recommendator node is down
 }
-ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("reactive_hokuyo_alg_node/hokuyo_recommended_velocity", &max_recommended_speedCB);
-
+ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("velocity_recommender_alg_node/forward_recommended_velocity", &max_recommended_speedCB);
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
  *
