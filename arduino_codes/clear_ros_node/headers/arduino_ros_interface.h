@@ -32,11 +32,12 @@
 #define NO_VERBOSE             0
 
 //! State codes referring to the operational mode and safety state
-#define EMERGENCY_STOP         0
-#define REMOTE_CONTROL         1
-#define ROS_CONTROL            2
-#define RESET                  3
-#define CALIBRATION            4
+#define EMERGENCY_STOP          0
+#define REMOTE_CONTROL          1
+#define ROS_CONTROL             2
+#define RESET                   3
+#define CALIBRATION             4
+#define REMOTE_CONTROL_NOT_SAFE 5
 
 //! Error codes
 #define NO_ERROR               0

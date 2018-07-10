@@ -257,6 +257,12 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   	  led_rgb_value_[2] = 0;
       break;
 
+    case REMOTE_CONTROL_NOT_SAFE:
+  	  led_rgb_value_[0] = 255;
+  	  led_rgb_value_[1] = 255;
+  	  led_rgb_value_[2] = 255;
+      break;
+
     case ROS_CONTROL:
     	//if(!ros::master::check()) operational_mode_ = EMERGENCY_STOP;
   	  led_rgb_value_[0] = 0;
@@ -479,6 +485,38 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
 	  }
       break;
 
+    case REMOTE_CONTROL_NOT_SAFE:
+	  if(!REMOTE_CONTROL_USE_PID)
+	  {
+		  speed_volts_pid_ = remote_control_.speed_volts;
+		  steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
+	  }
+	  else
+	  {
+		  desired_state_.speed = remote_control_.desired_state.speed;
+		  flag_limiting_speed_by_reactive_ = false;
+
+		  checkSetpoint(desired_state_.speed);
+
+
+		  desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
+
+		  if(fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
+	      {
+			  desired_state_.speed = 0.0;
+			  //estimated_state_.speed = 0.0;
+
+			  speed_volts_pid_ = 0.0;
+			  resetSpeed();
+		  }
+		  else
+		  {
+			  speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_METERS_SECOND,ABS_MAX_SPEED_VOLTS);
+		  }
+		  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_ANGLE_DEG,ABS_MAX_STEERING_MOTOR_PWM);
+	  }
+      break;
+
     case ROS_CONTROL:
 	  if(desired_state_.speed < max_recommended_speed || !flag_speed_recommendation_active_ )
 	  {
@@ -540,11 +578,13 @@ void Vehicle::readRemoteControl(void)
 				  remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
 			  }
 
-
+			  //Serial.println(dBus_->channels[5]);
 			  if(dBus_->channels[6] != 1024)
 				  operational_mode_ = EMERGENCY_STOP;
 			  else if(dBus_->channels[5] == 1541)
 				  operational_mode_ = ROS_CONTROL;
+			  else if(dBus_->channels[5] == 511)
+				  operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
 			  else
 				  operational_mode_ = REMOTE_CONTROL;
 		  }
