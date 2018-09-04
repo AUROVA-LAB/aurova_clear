@@ -8,7 +8,7 @@
  *  The main loop executes the communications, sensor readings and low level
  *  controllers (steering and forward velocity).
  *  Non standard naming conventions in this file:
- *  - CallBacks end with "CB"
+ *  - CallBacks start with "cb_"
  */
 
 #include <ros.h>
@@ -25,58 +25,85 @@
 #include "headers/vehicle.h"
 #include "headers/configuration_vehicle_hardware.h"
 
-int warning_code = NO_WARNINGS;
+///////////////////////////////////////////////////
+// Declaration of Arduino global variables
+///////////////////////////////////////////////////
+
+////////////////////////
+// General
+unsigned long int current_time  = 0; //!< Variable used to publish topics at desired rate (set in COMMUNICATION_REFRESH_TIME_IN_MILLIS)
+unsigned long int previous_time = 0; //!< The other variable used to publish topics at desired rate
+
+elapsedMillis reactive_watchdog = 0; //!< Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
 
 Vehicle AckermannVehicle;
 
 ros::NodeHandle nh;
 
-/*! \brief Callback to read the desired verbose level
- *
- * @param desired_verbose_level_msg a message that contains an int indicating the desired verbose level
- */
+////////////////////////
+// Inputs
 int verbose_level = MAX_VERBOSE_LEVEL;
-void desiredVerboseLevelCB(const std_msgs::Int16& desired_verbose_level_msg)
-{
-  // blink the led to check that the callback is being called
-  digitalWrite(BUILT_IN_ARDUINO_LED_PORT, HIGH - digitalRead(BUILT_IN_ARDUINO_LED_PORT));
+float max_recommended_speed = 0.0;   //!< To store the maximum speed recommended by the reactive systems
 
+// Messages to store input data in callbacks
+ackermann_msgs::AckermannDriveStamped desired_ackermann_state;
+std_msgs::Float32MultiArray desired_vel_pid_gains; //!< No need of initializing it since this gains are only used after the callback execution
+std_msgs::Float32MultiArray desired_ste_pid_gains; //!< No need of initializing it since this gains are only used after the callback execution
+std_msgs::Float32MultiArray desired_limit_switches_position_LR;
+
+
+///////////////////////
+// Outputs
+int warning_code = NO_WARNINGS;
+
+ackermann_msgs::AckermannDriveStamped estimated_ackermann_state; //!< mean values of EKF estimated state: steering angle (deg) and speed (m/s)
+ackermann_msgs::AckermannDriveStamped variances_of_estimated_ackermann_state; //!< variances of EKF estimated values
+std_msgs::Float32MultiArray speed_volts_and_steering_pwm_being_applicated;
+std_msgs::Float32MultiArray arduino_status;
+
+// Echoes to check communications
+ackermann_msgs::AckermannDriveStamped desired_ackermann_state_echo;
+std_msgs::Float32MultiArray vel_pid_gains_echo;
+std_msgs::Float32MultiArray ste_pid_gains_echo;
+std_msgs::Float32MultiArray echo_desired_limit_switches_position_LR;
+
+
+//////////////////////////////////////////////////////
+// Callbacks
+//////////////////////////////////////////////////////
+
+/*! \brief Callback to store the desired verbose level
+ *
+ * @param desired_verbose_level_msg a message that contains an integer code indicating
+ * the desired verbose level defined in arduino_ros_interface.h
+ */
+void cb_desiredVerboseLevel(const std_msgs::Int16& desired_verbose_level_msg)
+{
   verbose_level = desired_verbose_level_msg.data;
 }
-ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level", &desiredVerboseLevelCB);
 
-
-/*! \brief Callback to read the maximum recommended speed
- *
+/*! \brief Callback to store the maximum recommended speed, it sets a flag to indicate that the safety system is alive
+ *  and resets the watchdog
  */
-
-elapsedMillis reactive_watchdog = 0;
-float max_recommended_speed = 0.0;
-int millisSinceLastReactiveUpdate = 0;
-void max_recommended_speedCB(const std_msgs::Float32& max_recommended_speed_msg)
+void cb_maxRecommendedSpeed(const std_msgs::Float32& max_recommended_speed_msg)
 {
-	max_recommended_speed = max_recommended_speed_msg.data;
-	AckermannVehicle.setFlagSpeedRecommendationActive(true);
-	reactive_watchdog = 0;
+  max_recommended_speed = max_recommended_speed_msg.data;
+  AckermannVehicle.setFlagSpeedRecommendationActive(true);
+  reactive_watchdog = 0;
 }
-ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber("velocity_recommender_alg/forward_recommended_velocity", &max_recommended_speedCB);
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
  *
- * @param desired_ackermann_state_msg a desired ackermann state message that should include at least
- * the steering angle (radians) and the forward velocity (m/s), this is the interface between the
- * PC (high level) and Arduino (low level) controllers that finally control the Blue Barrow actuators
+ * This is the interface between the PC (high level) and Arduino (low level) to control the robot actuators
+ *
+ * @param desired_ackermann_state_msg a desired ackermann state message that should include
+ * the steering angle (degrees) and the forward velocity (m/s). The rest of the values are unused.
  */
-ackermann_msgs::AckermannDriveStamped desired_ackermann_state;
-ackermann_msgs::AckermannDriveStamped desired_ackermann_state_echo;
-void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_msg)
+void cb_desiredAckermannState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_msg)
 {
   if (AckermannVehicle.getOperationalMode() == ROS_CONTROL)
   {
-    // blink the led to check that the callback is being called
-    digitalWrite(BUILT_IN_ARDUINO_LED_PORT, HIGH - digitalRead(BUILT_IN_ARDUINO_LED_PORT));
-
-    //Copy the incoming message
+    //We copy the incoming message
     desired_ackermann_state.header = desired_ackermann_state_msg.header;
     desired_ackermann_state.drive = desired_ackermann_state_msg.drive;
   }
@@ -85,87 +112,37 @@ void desiredAckermannStateCB(const ackermann_msgs::AckermannDriveStamped& desire
     warning_code = RECEIVING_ROS_CONTROLS_WHILE_NOT_BEING_IN_ROS_MODE;
   }
 }
-ros::Subscriber<ackermann_msgs::AckermannDriveStamped> ackermann_subscriber("desired_ackermann_state",
-                                                                            &desiredAckermannStateCB);
-ros::Publisher required_ackermann_publisher("echo_desired_ackermann_state", &desired_ackermann_state_echo);
 
-
-
-
-/*!
- * Publisher to communicate the ackermann state estimated with the kalman filters, the sensor hall and the encoders
- */
-ackermann_msgs::AckermannDriveStamped estimated_ackermann_state;
-ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
-
-/*!
- * Publisher to communicate the covariance of ackermann state estimated with the kalman filters, the sensor hall and the encoders
- */
-ackermann_msgs::AckermannDriveStamped covariance_ackermann_state;
-ros::Publisher covariance_ackermann_publisher("covariance_ackermann_state", &covariance_ackermann_state);
-
-
-/*! \brief CallBack to read the velocity control PID gains (kp, ki, and kd) coming from the on-board PC
+/*! \brief CallBack to store the velocity control PID gains (kp, ki, and kd) coming from the on-board PC
  *
  * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
  */
-std_msgs::Float32MultiArray desired_vel_pid_gains;
-
-/*TODO --> look for a good initialization!
-desired_vel_pid_gains.data_length = 3;
-desired_vel_pid_gains.data[0] = IMPOSSIBLE_PID_GAIN;
-desired_vel_pid_gains.data[1] = IMPOSSIBLE_PID_GAIN;
-desired_vel_pid_gains.data[2] = IMPOSSIBLE_PID_GAIN;
-*/
-
-std_msgs::Float32MultiArray vel_pid_gains_echo;
-void velPIDGainsCB(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
+void cb_velPIDGains(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
 {
-  // blink the led to check that the callback is being called
-  digitalWrite(BUILT_IN_ARDUINO_LED_PORT, HIGH - digitalRead(BUILT_IN_ARDUINO_LED_PORT));
-
   desired_vel_pid_gains = vel_pid_gains_msg;
   desired_vel_pid_gains.data_length = 3;
 
   AckermannVehicle.setVelocityPIDGains(desired_vel_pid_gains);
 }
-ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_vel_pid_gains", &velPIDGainsCB);
-
-ros::Publisher required_vel_pid_gains_publisher("echo_desired_vel_pid_gains", &vel_pid_gains_echo);
-
-
-
 
 /*! \brief CallBack to read the steering control PID gains (kp, ki, and kd)
  *
- * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
+ * @param pid_gains_msg a message containing three floats, in order: kp, ki and kd
  */
-std_msgs::Float32MultiArray desired_ste_pid_gains;
-std_msgs::Float32MultiArray ste_pid_gains_echo;
-void steeringPIDGainsCB(const std_msgs::Float32MultiArray& ste_pid_gains_msg)
+void cb_steeringPIDGains(const std_msgs::Float32MultiArray& ste_pid_gains_msg)
 {
-  // blink the led to check that the callback is being called
-  digitalWrite(BUILT_IN_ARDUINO_LED_PORT, HIGH - digitalRead(BUILT_IN_ARDUINO_LED_PORT));
-
   desired_ste_pid_gains = ste_pid_gains_msg;
   desired_ste_pid_gains.data_length = 3;
 
   AckermannVehicle.setSteeringPIDGains(desired_ste_pid_gains);
 
 }
-ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desired_steering_pid_gains",
-                                                                           &steeringPIDGainsCB);
 
-ros::Publisher required_steering_pid_gains_publisher("echo_desired_steering_pid_gains", &ste_pid_gains_echo);
-
-
-/*! \brief CallBack to read the steering control PID gains (kp, ki, and kd)
+/*! \brief CallBack to calibrate dynamically the steering limit switches angular position
  *
- * @param pid_gains_msg a message containing three floats, in order : kp, ki and kd
+ * @param limit_switches_msg a message containing two floats, in order: left position and right position (expressed in degrees)
  */
-std_msgs::Float32MultiArray desired_limit_switches_position_LR;
-std_msgs::Float32MultiArray echo_desired_limit_switches_position_LR;
-void limitSwitchesCalibrationCB(const std_msgs::Float32MultiArray& limit_switches_msg)
+void cb_limitSwitchesCalibration(const std_msgs::Float32MultiArray& limit_switches_msg)
 {
   desired_limit_switches_position_LR = limit_switches_msg;
   desired_limit_switches_position_LR.data_length = 2;
@@ -173,41 +150,116 @@ void limitSwitchesCalibrationCB(const std_msgs::Float32MultiArray& limit_switche
   AckermannVehicle.setLimitSwitchesPositionLR(desired_limit_switches_position_LR);
 
 }
+
+/////////////////////////////////////////////
+// Subscribers
+/////////////////////////////////////////////
+
+/*!
+ * Subscriber that receives a code to adequate the amount of debugging information that the Arduino will produce
+ */
+ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level", &cb_desiredVerboseLevel);
+
+/*!
+ * Subscriber that receives the maximum speed for the platform, it comes from the safety system
+ */
+ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber(
+    "velocity_recommender_alg_node/forward_recommended_velocity", &cb_maxRecommendedSpeed);
+
+/*!
+ * Subscriber that receives the setpoint for the PID controllers (steering in deg and speed in m/s)
+ */
+ros::Subscriber<ackermann_msgs::AckermannDriveStamped> ackermann_subscriber("desired_ackermann_state",
+                                                                            &cb_desiredAckermannState);
+
+/*!
+ * Subscriber that receives the gains for the PID speed controller
+ */
+ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_vel_pid_gains", &cb_velPIDGains);
+
+/*!
+ * Subscriber that receives the gains for the PID steering controller
+ */
+ros::Subscriber<std_msgs::Float32MultiArray> steering_pid_gains_subscriber("desired_steering_pid_gains",
+                                                                           &cb_steeringPIDGains);
+
+/*!
+ * Subscriber that receives the angular position of the limit switches, used for online calibration
+ */
 ros::Subscriber<std_msgs::Float32MultiArray> limit_switches_calibration_subscriber("desired_limit_switches_position_LR",
-                                                                           &limitSwitchesCalibrationCB);
+                                                                                   &cb_limitSwitchesCalibration);
 
+
+///////////////////////////////////////////////
+// Publishers
+///////////////////////////////////////////////
+
+/////////////
+// Echoes
+/*!
+ * Publisher to produce an echo of the desired ackermann state to check communications
+ */
+ros::Publisher required_ackermann_publisher("echo_desired_ackermann_state", &desired_ackermann_state_echo);
+
+/*!
+ * Publisher to produce an echo of the desired vel pid gains to check communications
+ */
+ros::Publisher required_vel_pid_gains_publisher("echo_desired_vel_pid_gains", &vel_pid_gains_echo);
+
+/*!
+ * Publisher to produce an echo of the desired steering pid gains to check communications
+ */
+ros::Publisher required_steering_pid_gains_publisher("echo_desired_steering_pid_gains", &ste_pid_gains_echo);
+
+/*!
+ * Publisher to produce an echo of the desired limit switches position to check communications
+ */
 ros::Publisher required_limit_switches_position_publisher("echo_desired_limit_switches_position_LR",
-		                                                   &echo_desired_limit_switches_position_LR);
+                                                          &echo_desired_limit_switches_position_LR);
 
 
+////////////////
+// Non-echoes
+/*!
+ * Publisher to communicate the mean of the EKF estimated ackermann state (using the speed and steering encoders)
+ */
+ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estimated_ackermann_state);
+
+/*!
+ * Publisher to communicate the EKF variances of the estimated ackermann state
+ */
+ros::Publisher covariance_ackermann_publisher("variances_of_estimated_ackermann_state",
+                                              &variances_of_estimated_ackermann_state);
 
 /*!
  * Publisher to communicate to ROS the actual signals applied to the actuators (speed and steering)
  */
-std_msgs::Float32MultiArray speed_volts_and_steering_pwm_being_applicated;
-ros::Publisher speed_volts_and_steering_pwm("speed_volts_and_steering_pwm", &speed_volts_and_steering_pwm_being_applicated);
-
-
-
+ros::Publisher speed_volts_and_steering_pwm("speed_volts_and_steering_pwm",
+                                            &speed_volts_and_steering_pwm_being_applicated);
 
 /*!
  * \brief write the status message with current values
  * This message should be updated if more status codes are added!
  */
-std_msgs::Float32MultiArray arduino_status;
 ros::Publisher arduino_status_publisher("arduino_status", &arduino_status);
+
+
+/////////////////////////////////////////////////
+// Functions
+/////////////////////////////////////////////////
+
+/*!
+ * \brief Fill the status data and publish the message
+ */
 void sendArduinoStatus(void)
 {
-  arduino_status.data[0] = estimated_ackermann_state.drive.jerk;//desired_ackermann_state.drive.speed;//AckermannVehicle.getOperationalMode();
-  arduino_status.data[1] = estimated_ackermann_state.drive.speed;//ckermannVehicle.getErrorCode();
-  arduino_status.data[2] = speed_volts_and_steering_pwm_being_applicated.data[0]*1.4 / 4.9;//warning_code;
-  arduino_status.data[3] = estimated_ackermann_state.drive.acceleration;
+  arduino_status.data[0] = AckermannVehicle.getOperationalMode();
+  arduino_status.data[1] = AckermannVehicle.getErrorCode();
+  arduino_status.data[2] = warning_code;
+  arduino_status.data[3] = verbose_level;
 
   arduino_status_publisher.publish(&arduino_status);
 }
-
-
-
 
 /*!
  * \brief Dynamic memory reserve for all array messages
@@ -238,9 +290,6 @@ void reserveDynamicMemory(void)
   echo_desired_limit_switches_position_LR.data_length = NUM_OF_STEERING_LIMIT_SWITCHES;
   echo_desired_limit_switches_position_LR.data = (float *)malloc(sizeof(float) * NUM_OF_STEERING_LIMIT_SWITCHES);
 }
-
-
-
 
 /*!
  * \brief Initialising the ROS node, subscribers and publishers
@@ -290,9 +339,6 @@ void setup()
   wdt_enable(WDTO_500MS);
 }
 
-
-
-
 /*!
  * \brief Function to activate a flag to communicate with ROS periodically
  *
@@ -301,8 +347,6 @@ void setup()
  * COMMUNICATION_REFRESH_TIME_IN_MILLIS constant, is reset to false when
  * this condition is not satisfied
  */
-unsigned long int current_time = 0;
-unsigned long int previous_time = 0;
 bool checkIfItsTimeToInterfaceWithROS(void)
 {
   bool check = false;
@@ -314,29 +358,23 @@ bool checkIfItsTimeToInterfaceWithROS(void)
     check = true;
     previous_time = current_time;
   }
-  return(check);
+  return (check);
 }
-
-
-
 
 /*!
  * \brief Attends the callbacks and pass the input values to the vehicle
  */
 void receiveROSInputs(void)
 {
-    //! Attending callbacks
-    nh.spinOnce();
+  //! Attending callbacks
+  nh.spinOnce();
 
-    //! passing ROS inputs to the vehicle
-    if(AckermannVehicle.getOperationalMode() == ROS_CONTROL)
-    {
-    	AckermannVehicle.updateROSDesiredState(desired_ackermann_state);
-    }
+  //! passing ROS inputs to the vehicle
+  if (AckermannVehicle.getOperationalMode() == ROS_CONTROL)
+  {
+    AckermannVehicle.updateROSDesiredState(desired_ackermann_state);
+  }
 }
-
-
-
 
 /*!
  * \brief Send information to ROS, the level of detail is managed through
@@ -347,7 +385,7 @@ void sendOutputsToROS(void)
   //! Publishing Arduino inner information to ease debug and monitoring
   if (verbose_level == MAX_VERBOSE_LEVEL)
   {
-	AckermannVehicle.getDesiredState(desired_ackermann_state_echo);
+    AckermannVehicle.getDesiredState(desired_ackermann_state_echo);
     required_ackermann_publisher.publish(&desired_ackermann_state_echo);
 
     AckermannVehicle.getVelocityPIDGains(vel_pid_gains_echo);
@@ -363,54 +401,54 @@ void sendOutputsToROS(void)
   {
     sendArduinoStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
-    covariance_ackermann_publisher.publish(&covariance_ackermann_state);
+    covariance_ackermann_publisher.publish(&variances_of_estimated_ackermann_state);
     speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
   }
 }
 
 
-
-
-/*!
- * \brief Arduino main loop, from here are managed all communications, sensors and actuators
- */
 bool communicate_with_ROS = false;
 
 unsigned long int last_time = micros();
 unsigned long int now = 0;
 unsigned long int time_change = 0;
 
+/*!
+ * \brief Arduino main loop, from here are managed all communications, sensors and actuators
+ */
 void loop()
 {
   wdt_reset();
 
   communicate_with_ROS = checkIfItsTimeToInterfaceWithROS();
 
-  if (communicate_with_ROS) receiveROSInputs();
+  if (communicate_with_ROS)
+    receiveROSInputs();
 
-  AckermannVehicle.updateState(estimated_ackermann_state, covariance_ackermann_state);
+  AckermannVehicle.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state);
 
   AckermannVehicle.readOnBoardUserInterface();
 
-  if(AckermannVehicle.getOperationalMode() != CALIBRATION)
-	  AckermannVehicle.readRemoteControl();
+  if (AckermannVehicle.getOperationalMode() != CALIBRATION)
+    AckermannVehicle.readRemoteControl();
 
-  millisSinceLastReactiveUpdate = reactive_watchdog;
+  int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the watchdog value to the finite state machine
   AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
   now = micros();
 
-  if(now > last_time)
-	time_change = now - last_time;
+  if (now > last_time)
+    time_change = now - last_time;
   else
-	time_change = 4294967295 - last_time;
+    time_change = 4294967295 - last_time;
 
   AckermannVehicle.calculateCommandOutputs(max_recommended_speed);
 
   last_time = now;
 
-  if(AckermannVehicle.getOperationalMode() != CALIBRATION)
-	  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
+  if (AckermannVehicle.getOperationalMode() != CALIBRATION)
+    AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
 
-  if (communicate_with_ROS) sendOutputsToROS();
+  if (communicate_with_ROS)
+    sendOutputsToROS();
 }
