@@ -31,6 +31,7 @@
 
 ////////////////////////
 // General
+bool communicate_with_ROS = false;
 unsigned long int current_time  = 0; //!< Variable used to publish topics at desired rate (set in COMMUNICATION_REFRESH_TIME_IN_MILLIS)
 unsigned long int previous_time = 0; //!< The other variable used to publish topics at desired rate
 
@@ -296,8 +297,7 @@ void reserveDynamicMemory(void)
  */
 void setup()
 {
-  wdt_disable();
-  Serial.begin(57600);
+  Serial.begin(115200);
 
   Wire.begin();
   Wire.setClock(100000); //100Kbps
@@ -335,8 +335,6 @@ void setup()
   nh.advertise(covariance_ackermann_publisher);
 
   nh.subscribe(max_recommended_speed_subscriber);
-
-  wdt_enable(WDTO_500MS);
 }
 
 /*!
@@ -406,49 +404,28 @@ void sendOutputsToROS(void)
   }
 }
 
-
-bool communicate_with_ROS = false;
-
-unsigned long int last_time = micros();
-unsigned long int now = 0;
-unsigned long int time_change = 0;
-
 /*!
  * \brief Arduino main loop, from here are managed all communications, sensors and actuators
  */
 void loop()
 {
-  wdt_reset();
-
   communicate_with_ROS = checkIfItsTimeToInterfaceWithROS();
 
-  if (communicate_with_ROS)
-    receiveROSInputs();
+  if (communicate_with_ROS) receiveROSInputs();
 
   AckermannVehicle.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state);
 
   AckermannVehicle.readOnBoardUserInterface();
 
-  if (AckermannVehicle.getOperationalMode() != CALIBRATION)
-    AckermannVehicle.readRemoteControl();
+  if (AckermannVehicle.getOperationalMode() != CALIBRATION) AckermannVehicle.readRemoteControl();
 
   int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the watchdog value to the finite state machine
   AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
-  now = micros();
-
-  if (now > last_time)
-    time_change = now - last_time;
-  else
-    time_change = 4294967295 - last_time;
-
   AckermannVehicle.calculateCommandOutputs(max_recommended_speed);
-
-  last_time = now;
 
   if (AckermannVehicle.getOperationalMode() != CALIBRATION)
     AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
 
-  if (communicate_with_ROS)
-    sendOutputsToROS();
+  if (communicate_with_ROS) sendOutputsToROS();
 }
