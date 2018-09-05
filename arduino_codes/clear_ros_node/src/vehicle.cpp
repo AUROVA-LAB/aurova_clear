@@ -257,36 +257,40 @@ void Vehicle::readOnBoardUserInterface(void)
 
 void Vehicle::readRemoteControl(void)
 {
-  dBus_->FeedLine();
-  dBus_->UpdateSignalState();
+  dBus_->FeedLine(); //! Makes a memcopy of the RC buffer content
 
-  if (dBus_->failsafe_status == DBUS_SIGNAL_OK)
+  dBus_->UpdateSignalState(); //! Check if the remote controller is alive
+  if (dBus_->failsafe_status != DBUS_SIGNAL_OK)
   {
-    if (dBus_->toChannels == 1)
-
+    operational_mode_ = EMERGENCY_STOP;
+  }
+  else
+  {
+    if (dBus_->toChannels == 1) //! If there are new data to read
     {
       dBus_->UpdateChannels();
-      dBus_->toChannels = 0;
+      dBus_->toChannels = 0; //! Reset the flag to indicate "ready to receive new data"
 
+      // Speed and steering commands mapping
+      if (!REMOTE_CONTROL_USE_PID) //! We map directly the RC command to volts and pwm to actuate the motors
+      {
+        remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS,
+                                               ABS_MAX_SPEED_VOLTS);
+        remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_MOTOR_PWM,
+                                                      -1 * ABS_MAX_STEERING_MOTOR_PWM);
+      }
+      else //! To use the PID we map the RC command to steering degrees and speed meters per second
+      {
+        remote_control_.desired_state.speed = mapFloat(dBus_->channels[2], 364.0, 1684.0,
+                                                       -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
+        remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[0], 364.0, 1684.0,
+                                                                ABS_MAX_STEERING_ANGLE_DEG,
+                                                                -ABS_MAX_STEERING_ANGLE_DEG);
+      }
+
+      // Operational mode switching
       if (operational_mode_ != EMERGENCY_STOP)
       {
-        if (!REMOTE_CONTROL_USE_PID)
-        {
-          remote_control_.speed_volts = mapFloat(dBus_->channels[2], 364.0, 1684.0, -ABS_MAX_SPEED_VOLTS,
-                                                 ABS_MAX_SPEED_VOLTS);
-          remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[0], 364.0, 1684.0, ABS_MAX_STEERING_MOTOR_PWM,
-                                                        -1 * ABS_MAX_STEERING_MOTOR_PWM);
-        }
-        else
-        {
-          remote_control_.desired_state.speed = mapFloat(dBus_->channels[2], 364.0, 1684.0,
-                                                         -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
-          remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[0], 364.0, 1684.0,
-                                                                  ABS_MAX_STEERING_ANGLE_DEG,
-                                                                  -ABS_MAX_STEERING_ANGLE_DEG);
-        }
-
-        //Serial.println(dBus_->channels[5]);
         if (dBus_->channels[6] != 1024)
           operational_mode_ = EMERGENCY_STOP;
         else if (dBus_->channels[5] == 1541)
@@ -295,28 +299,18 @@ void Vehicle::readRemoteControl(void)
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
         else
           operational_mode_ = REMOTE_CONTROL;
-      }
-
-      else
-      {
-        if (!REMOTE_CONTROL_USE_PID)
-        {
-          remote_control_.speed_volts = 0.0;
-          remote_control_.steering_angle_pwm = 0.0;
-        }
-        else
-        {
-          remote_control_.desired_state.speed = 0.0;
-          remote_control_.desired_state.steering_angle = 0.0;
-        }
-
-        if (dBus_->channels[6] == 1024 and dBus_->channels[4] == 364 and digitalRead(EMERGENCY_SWITCH) == HIGH)
+      }else{
+        if (operational_mode_ == EMERGENCY_STOP and
+            dBus_->channels[6] == 1024 and
+            dBus_->channels[4] == 364 and
+            digitalRead(EMERGENCY_SWITCH) == HIGH)
         {
           operational_mode_ = REMOTE_CONTROL;
           digitalWrite(ENABLE_MOTORS, LOW);
         }
       }
 
+      // Horn
       if (dBus_->channels[4] == 1684)
       {
         //digitalWrite(HORN, LOW);
@@ -327,22 +321,6 @@ void Vehicle::readRemoteControl(void)
       }
     }
   }
-
-  else
-  {
-    operational_mode_ = EMERGENCY_STOP;
-    if (!REMOTE_CONTROL_USE_PID)
-    {
-      remote_control_.speed_volts = 0.0;
-      remote_control_.steering_angle_pwm = 0.0;
-    }
-    else
-    {
-      remote_control_.desired_state.speed = 0.0;
-      remote_control_.desired_state.steering_angle = 0.0;
-    }
-  }
-
 }
 
 void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
@@ -384,7 +362,6 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
       break;
 
     case ROS_CONTROL:
-      //if(!ros::master::check()) operational_mode_ = EMERGENCY_STOP;
       led_rgb_value_[0] = 0;
       led_rgb_value_[1] = 0;
       led_rgb_value_[2] = 255;
