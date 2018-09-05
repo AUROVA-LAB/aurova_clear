@@ -299,6 +299,9 @@ void setup()
 {
   Serial.begin(115200);
 
+  wdt_disable();           //!< watchdog timer configuration
+  wdt_enable(WDTO_500MS);  //!< it is set to automatically reboot the arduino in case of main loop hanging
+
   Wire.begin();
   Wire.setClock(100000); //100Kbps
 
@@ -306,7 +309,7 @@ void setup()
   // Default 490Hz (scaler 3)
   // https://playground.arduino.cc/Code/PwmFrequency
   // https://forum.arduino.cc/index.php?topic=72092.0
-  // PWM PIN 10 Mega -> Timmer 2
+  // PWM PIN 10 Mega -> Timer 2
   TCCR2B = (TCCR2B & 0b11111000) | 1;
 
   reserveDynamicMemory();
@@ -409,23 +412,25 @@ void sendOutputsToROS(void)
  */
 void loop()
 {
-  communicate_with_ROS = checkIfItsTimeToInterfaceWithROS();
+  wdt_reset(); //!< each new loop we reset the hanging watchdog timer
 
-  if (communicate_with_ROS) receiveROSInputs();
+  communicate_with_ROS = checkIfItsTimeToInterfaceWithROS(); //!< Flag to control the ROS reading and publishing rate
 
-  AckermannVehicle.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state);
+  if (communicate_with_ROS) receiveROSInputs(); //!< Attending callbacks
 
-  AckermannVehicle.readOnBoardUserInterface();
+  AckermannVehicle.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state); //!< EKF iteration
 
-  if (AckermannVehicle.getOperationalMode() != CALIBRATION) AckermannVehicle.readRemoteControl();
+  AckermannVehicle.readOnBoardUserInterface(); //!< Read the controls available on-board (currently only the emergency switch)
 
-  int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the watchdog value to the finite state machine
+  if (AckermannVehicle.getOperationalMode() != CALIBRATION) AckermannVehicle.readRemoteControl(); //!< Decode and map the RC signals
+
+  int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the safety watchdog value to the finite state machine
   AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
-  AckermannVehicle.calculateCommandOutputs(max_recommended_speed);
+  AckermannVehicle.calculateCommandOutputs(max_recommended_speed); //!< It uses the reactive safety system speed limitation
 
   if (AckermannVehicle.getOperationalMode() != CALIBRATION)
-    AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated);
+    AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); //!< Here we actuate the motors
 
-  if (communicate_with_ROS) sendOutputsToROS();
+  if (communicate_with_ROS) sendOutputsToROS(); //!< publishing the ROS interface topics
 }

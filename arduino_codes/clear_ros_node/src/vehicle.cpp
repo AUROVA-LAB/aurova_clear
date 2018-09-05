@@ -619,10 +619,13 @@ void Vehicle::readRemoteControl(void)
       }
 
       if (dBus_->channels[4] == 1684)
-        digitalWrite(HORN, LOW);
+      {
+        //digitalWrite(HORN, LOW);
+      }
       else
+      {
         digitalWrite(HORN, HIGH);
-
+      }
     }
   }
 
@@ -714,14 +717,6 @@ void Vehicle::resetSpeed()
   speed_controller_->resetPID();
   speed_estimator_->resetSDKF();
 }
-
-/*TODO
- void Vehicle::resetSpeed()
- {
- steering_controller_->resetPID();
- steering_estimator_->resetSDKF();
- }
- */
 
 void Vehicle::setFlagSpeedRecommendationActive(bool flag_state)
 {
