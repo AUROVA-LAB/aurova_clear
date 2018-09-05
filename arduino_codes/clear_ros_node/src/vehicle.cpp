@@ -170,78 +170,55 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 {
   if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
   {
-    state_estimator_->predict(speed_volts_);
-    millis_since_last_EKF_prediction_ = 0;
+    state_estimator_->predict(speed_volts_); //!< Make EKF prediction step
+    millis_since_last_EKF_prediction_ = 0; //!< Reset the counter
   }
 
   if (millis_since_last_steering_reading_ >= SAMPLING_TIME_STEERING_)
   {
-    steering_measures_ = steering_actuator_->getSteeringMeasures();
+    steering_measures_ = steering_actuator_->getSteeringMeasures(); //!< Read the steering encoder pulses
 
-    measured_state_.steering_angle_velocity = steering_measures_[1] * PULSES_TO_DEG;
+    measured_state_.steering_angle_velocity = steering_measures_[1] * PULSES_TO_DEG; //!< Pass to degrees
     measured_state_.steering_angle = steering_measures_[0] * PULSES_TO_DEG;
-    millis_since_last_steering_reading_ = 0;
-    if (fabs(steering_measures_[0]) < 170)
-      Serial.println(steering_measures_[0]);
-    state_estimator_->correctEnc(measured_state_.steering_angle);
+    millis_since_last_steering_reading_ = 0; //!< Reset the counter
+
+    state_estimator_->correctEnc(measured_state_.steering_angle); //!< Make EKF correction using the incremental steering observation
   }
 
   if (millis_since_last_speed_reading_ >= SAMPLING_TIME_SPEED_)
   {
-    speed_measures_ = speed_actuator_->getSpeedMeasures();
-    millis_since_last_speed_reading_ = 0;
+    speed_measures_ = speed_actuator_->getSpeedMeasures(); //!< Read the speed encoder pulses
+    millis_since_last_speed_reading_ = 0; //!< Reset the counter
 
     float direction = 1.0;
     if (!speed_actuator_->getFlagForward())
       direction = -1.0;
 
-    float speed_left_rear_wheel = speed_measures_[0] * METERS_PER_PULSE * direction;
+    float speed_left_rear_wheel = speed_measures_[0] * METERS_PER_PULSE * direction; //!< Pass to meters per second
 
-    measured_state_.speed = speed_left_rear_wheel;
-    measured_state_.acceleration = speed_measures_[1] * METERS_PER_PULSE; // TODO--> check if direction is also needed here
+    measured_state_.speed = speed_left_rear_wheel; //!< The encoder is attached to the left rear wheel
+    measured_state_.acceleration = speed_measures_[1] * METERS_PER_PULSE;
     measured_state_.jerk = speed_measures_[2] * METERS_PER_PULSE;
 
-    state_estimator_->correctHall(speed_left_rear_wheel);
+    state_estimator_->correctHall(speed_left_rear_wheel); //!< Make EKF correction using speed observation
   }
 
-  //Serial.println(steering_actuator_->readLimitSwitches());
-  //int ls = 0;
-  //              steering_actuator_->readLimitSwitches();
-  if (steering_actuator_->readLimitSwitches())
+  if (steering_actuator_->readLimitSwitches()) //!< If any steering limit switch is reached
   {
-    //Serial.print("Limit!!");
     float observed_theta = 0.0;
-//        if(ls==1)
-//        {
-//                observed_theta = left_steering_limit_switch_position_;
-//                //measured_state_.steering_angle = observed_theta;
-//                //Serial.println("left limit!!");
-//        }
-//        if(ls==2)
-//        {
-//                observed_theta = -1 * right_steering_limit_switch_position_;
-//                //measured_state_.steering_angle = observed_theta;
-//                //Serial.println("right limit!!");
-//        }
-//      //Serial.print("Steering angle = ");
-//      //Serial.println(measured_state_.steering_angle);
-//        //state_estimator_->correctLs(observed_theta);
     if (estimated_state_.steering_angle > 0.0)
     {
       observed_theta = left_steering_limit_switch_position_;
-      //Serial.println("left limit!!");
     }
     else
     {
       observed_theta = -1 * right_steering_limit_switch_position_;
-      //Serial.println("right limit!!");
     }
-    Serial.println(measured_state_.steering_angle);
-    //Serial.println(steering_measures[0]);
-    state_estimator_->correctLs(observed_theta);
-
+    state_estimator_->correctLs(observed_theta); //!< Make EKF correction using absolute steering observation
   }
-
+  /*! EKF state consists in calibration error (or steering in k=0),
+   * accumulated steering angle (integrating the incremental encoder) and speed
+   * */
   float steering_calibration_error = 0.0;
   float steering_cummulated_increment = 0.0;
   state_estimator_->getState(steering_calibration_error, steering_cummulated_increment, estimated_state_.speed);
@@ -262,13 +239,6 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_state_.jerk = steering_cummulated_increment;
   covariance_ackermann_state.drive.acceleration = steering_calibration_error_variance;
   covariance_ackermann_state.drive.jerk = steering_cummulated_increment_variance;
-
-  if (!USE_KALMAN_FILTER)
-  {
-    estimated_state_.steering_angle = measured_state_.steering_angle;
-    estimated_state_.steering_angle_velocity = measured_state_.steering_angle_velocity;
-    estimated_state_.speed = measured_state_.speed;
-  }
 
   // Passing to messages
   estimated_ackermann_state.drive.speed = estimated_state_.speed;

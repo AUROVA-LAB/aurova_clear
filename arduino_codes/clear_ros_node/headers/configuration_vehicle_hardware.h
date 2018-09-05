@@ -83,7 +83,6 @@ const int MAX_TIME_ZERO_VOLTS_TO_BRAKE = 5000; //millis
 
 //------------PID AND SDKF --------//
 const bool REMOTE_CONTROL_USE_PID = true;
-const bool USE_KALMAN_FILTER = true;
 const bool SATURATE_ACCEL_MAX = true;
 
 const float STEERING_KP = 1.0;
