@@ -196,11 +196,6 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 
   switch (operational_mode_)
   {
-    case RESET:
-
-      digitalWrite(ENABLE_MOTORS, LOW);
-      break;
-
     case EMERGENCY_STOP:
 
       digitalWrite(ENABLE_MOTORS, HIGH);
@@ -488,14 +483,8 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
       break;
 
     case EMERGENCY_STOP:
-
       speed_volts_ = SPEED_ZERO;
       steering_angle_pwm_ = STEERING_CENTERED;
-      break;
-
-    case RESET:
-      desired_state_.speed = SPEED_ZERO;
-      desired_state_.steering_angle = STEERING_CENTERED;
       break;
   }
 }
@@ -557,7 +546,8 @@ void Vehicle::readRemoteControl(void)
 
         if (dBus_->channels[6] == 1024 and dBus_->channels[4] == 364 and digitalRead(EMERGENCY_SWITCH) == HIGH)
         {
-          operational_mode_ = RESET;
+          operational_mode_ = REMOTE_CONTROL;
+          digitalWrite(ENABLE_MOTORS, LOW);
         }
       }
 
