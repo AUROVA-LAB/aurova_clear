@@ -14,7 +14,7 @@
 
 Vehicle::Vehicle()
 {
-  operational_mode_                        = CALIBRATION;
+  operational_mode_                        = REMOTE_CONTROL;
   last_operational_mode_                   = operational_mode_;
 
   estimated_state_.steering_angle          = 0.0;  // deg
@@ -72,7 +72,9 @@ Vehicle::Vehicle()
   steering_actuator_ = new SteeringHardwareInterface();
 
   speed_actuator_->  actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
+
   steering_actuator_->steeringMotor(0);
+  steering_actuator_->steering_encoder_->encoderReset(11);
 
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI,
                               SPEED_KD, MIN_VOLTS_TO_ACTUATE_MOTOR);
@@ -131,14 +133,6 @@ void Vehicle::saturateSetpointIfNeeded(float &speed)
     speed = ABS_MAX_SPEED_METERS_SECOND;
   else if (speed < -1 * ABS_MAX_SPEED_METERS_SECOND)
     speed = -1 * ABS_MAX_SPEED_METERS_SECOND;
-}
-
-bool Vehicle::componentsCalibration()
-{
-  if (steering_actuator_->steeringCalibration())
-    return true;
-  else
-    return false;
 }
 
 void Vehicle::setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
@@ -205,17 +199,6 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
     case RESET:
 
       digitalWrite(ENABLE_MOTORS, LOW);
-      /*
-       led_rgb_value_[0] = 0;
-       led_rgb_value_[1] = 0;
-       led_rgb_value_[2] = 0;
-       if ( desired_steering_state_reached_ )
-       {
-       //operational_mode_ = REMOTE_CONTROL;
-       }
-       */
-
-      //operational_mode_ = CALIBRATION;
       break;
 
     case EMERGENCY_STOP:
@@ -246,23 +229,6 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
       led_rgb_value_[1] = 0;
       led_rgb_value_[2] = 255;
       break;
-
-    case CALIBRATION:
-
-      led_rgb_value_[0] = 255;
-      led_rgb_value_[1] = 255;
-      led_rgb_value_[2] = 0;
-      //Serial.println("Calibrating, please wait...");
-      //if( componentsCalibration() )
-      //{
-      //  operational_mode_ = RESET;
-      //  Serial.println("Calibration finished!!");
-      //}
-
-      operational_mode_ = REMOTE_CONTROL;
-      steering_actuator_->steering_encoder_->encoderReset(11);
-      break;
-
   }
 
   if (flag_limiting_speed_by_reactive_ && flag_speed_recommendation_active_)
@@ -639,19 +605,14 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
     speed_volts_ = 0;
     steering_angle_pwm_ = 0;
   }
-
-  else if (operational_mode_ != CALIBRATION)
+  else
   {
     speed_volts_ = speed_volts_pid_;
+
     if (fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE)
       digitalWrite(BRAKE, LOW);
-    //int ls = steering_actuator_->readLimitSwitches();
-    //if(ls != 0)
-    //{
-    //	  steering_angle_pwm_ = 0;
-    //}else{
+
     steering_angle_pwm_ = steering_angle_pwm_pid_;
-    //}
   }
 
   if (timeBeforeBrake > MAX_TIME_ZERO_VOLTS_TO_BRAKE)

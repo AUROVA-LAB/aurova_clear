@@ -422,15 +422,14 @@ void loop()
 
   AckermannVehicle.readOnBoardUserInterface(); //!< Read the controls available on-board (currently only the emergency switch)
 
-  if (AckermannVehicle.getOperationalMode() != CALIBRATION) AckermannVehicle.readRemoteControl(); //!< Decode and map the RC signals
+  AckermannVehicle.readRemoteControl(); //!< Decode and map the RC signals
 
   int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the safety watchdog value to the finite state machine
   AckermannVehicle.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
   AckermannVehicle.calculateCommandOutputs(max_recommended_speed); //!< It uses the reactive safety system speed limitation
 
-  if (AckermannVehicle.getOperationalMode() != CALIBRATION)
-    AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); //!< Here we actuate the motors
+  AckermannVehicle.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); //!< Here we actuate the motors
 
   if (communicate_with_ROS) sendOutputsToROS(); //!< publishing the ROS interface topics
 }
