@@ -101,10 +101,21 @@ private:
 
   void saturateSetpointIfNeeded(float &speed);
 
+  void resetSpeed(void);
+
+  void resetSteering(void);
+
 public:
 
   Vehicle();
   ~Vehicle();
+
+  /*!
+   * Maps the variables in the ROS message to the inner State struct variables: Speed, Acceleration,
+   * Jerk, Steering Angle and Steering Angle Velocity
+   * @param desired_ackermann_state The state variables in ROS message format
+   */
+  void updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
 
   /*!
    * Reads the variables that store the odometers readings
@@ -132,26 +143,6 @@ public:
   void updateFiniteStateMachine(int millisSinceLastReactiveUpdate);
 
   /*!
-   * Maps the variables in the ROS message to the inner State struct variables: Speed, Acceleration,
-   * Jerk, Steering Angle and Steering Angle Velocity
-   * @param desired_ackermann_state The state variables in ROS message format
-   */
-  void updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
-
-  /*!
-   * Returns the desired state for debugging
-   */
-  void getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo);
-
-  /*!
-   * Maps variables in the ROS messages to the inner PID gains variables
-   * @param desired_vel_pid_gains
-   * @param desired_ste_pid_gains
-   */
-  void updatePIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,
-                      const std_msgs::Float32MultiArray& desired_ste_pid_gains);
-
-  /*!
    * Use the PID controllers to calculate the voltage and PWM values to control the hardware devices
    * forward velocity and steering actuators. The inputs are the measured and desired states.
    * This function is used in ROS control and Reset modes
@@ -164,21 +155,29 @@ public:
   void writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated);
 
   /*!
-   * Makes the first calibration of the vehicle components before run
+   * Returns the desired state for debugging
    */
-  bool componentsCalibration(void);
+  void getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo);
+
+  /*!
+   * Maps variables in the ROS messages to the inner PID gains variables
+   * @param desired_vel_pid_gains
+   * @param desired_ste_pid_gains
+   */
+  void setSpeedAndSteeringPIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,
+                                   const std_msgs::Float32MultiArray& desired_ste_pid_gains);
 
   /*!
    * Copy to inner velocity PID variables the values in the ROS message
    * @param desired_pid_gains
    */
-  void setVelocityPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains);
+  void setSpeedPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains);
 
   /*!
    * Pass the inner velocity PID gain values to ROS message format
    * @param current_pid_gains
    */
-  void getVelocityPIDGains(std_msgs::Float32MultiArray& current_pid_gains);
+  void getSpeedPIDGains(std_msgs::Float32MultiArray& current_pid_gains);
 
   /*!
    * Copy to inner steering PID variables the values in the ROS message
@@ -202,7 +201,7 @@ public:
    * @param current_operational_mode
    */
   void getOperationalMode(int& current_operational_mode);
-  int getOperationalMode(void);
+  int  getOperationalMode(void);
 
   /*!
    * Returns the error code that can express different causes to be in Emergency
@@ -210,9 +209,7 @@ public:
    * @param requested_error_code
    */
   void getErrorCode(int& requested_error_code);
-  int getErrorCode(void);
-
-  void resetSpeed();
+  int  getErrorCode(void);
 
   void setFlagSpeedRecommendationActive(bool flag_state);
 

@@ -123,7 +123,7 @@ void cb_velPIDGains(const std_msgs::Float32MultiArray& vel_pid_gains_msg)
   desired_vel_pid_gains = vel_pid_gains_msg;
   desired_vel_pid_gains.data_length = 3;
 
-  AckermannVehicle.setVelocityPIDGains(desired_vel_pid_gains);
+  AckermannVehicle.setSpeedPIDGains(desired_vel_pid_gains);
 }
 
 /*! \brief CallBack to read the steering control PID gains (kp, ki, and kd)
@@ -389,7 +389,7 @@ void sendOutputsToROS(void)
     AckermannVehicle.getDesiredState(desired_ackermann_state_echo);
     required_ackermann_publisher.publish(&desired_ackermann_state_echo);
 
-    AckermannVehicle.getVelocityPIDGains(vel_pid_gains_echo);
+    AckermannVehicle.getSpeedPIDGains(vel_pid_gains_echo);
     required_vel_pid_gains_publisher.publish(&vel_pid_gains_echo);
 
     AckermannVehicle.getSteeringPIDGains(ste_pid_gains_echo);
