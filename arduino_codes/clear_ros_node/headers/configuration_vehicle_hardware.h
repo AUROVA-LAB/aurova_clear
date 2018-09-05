@@ -38,9 +38,9 @@ const float MIN_PWM_TO_ACTUATE_MOTOR = 0.0;
 
 const float SAMPLING_HERTZ_STEERING = 20.0;
 
-const float ste_offset = 0.76;
-const float ABS_MAX_RIGHT_ANGLE_DEG = 24.45 + ste_offset; //Experimentally measured
-const float ABS_MAX_LEFT_ANGLE_DEG = 27.48 - ste_offset; //Experimentally measured
+const float STEERING_CALIBRATION_OFFSET = 0.76;
+const float ABS_MAX_RIGHT_ANGLE_DEG = 24.45 + STEERING_CALIBRATION_OFFSET; //Experimentally measured
+const float ABS_MAX_LEFT_ANGLE_DEG = 27.48 - STEERING_CALIBRATION_OFFSET; //Experimentally measured
 
 //const float ABS_MAX_STEERING_ANGLE_DEG = 23.0; // To avoid the mechanical limits
 const float ABS_MAX_STEERING_ANGLE_DEG = 30.0; // To allow observing the mechanical limits

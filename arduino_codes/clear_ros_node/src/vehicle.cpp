@@ -79,8 +79,6 @@ Vehicle::Vehicle()
 
   speed_controller_->setOutputLimits(NORMALIZING_PID_MIN_VALUE, NORMALIZING_PID_MAX_VALUE);
 
-  speed_estimator_ = new SDKF(SDKF_A, SDKF_B, 0.0, SDKF_Q_COVARIANCE, SDKF_R_COVARIANCE);
-
   steering_controller_ = new PID(&estimated_state_.steering_angle, &steering_angle_pwm_pid_,
                                  &desired_state_.steering_angle, STEERING_KP, STEERING_KI, STEERING_KD,
                                  MIN_PWM_TO_ACTUATE_MOTOR);
@@ -694,7 +692,6 @@ int Vehicle::getErrorCode(void)
 void Vehicle::resetSpeed()
 {
   speed_controller_->resetPID();
-  speed_estimator_->resetSDKF();
 }
 
 void Vehicle::setFlagSpeedRecommendationActive(bool flag_state)

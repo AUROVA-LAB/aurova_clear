@@ -19,7 +19,6 @@
 #include "speed_hardware_interface.h"
 #include "steering_hardware_interface.h"
 #include "pid.h"
-#include "sdkf.h"
 #include "EKF.h"
 #include "nav_msgs/Odometry.h"
 #include "configuration_vehicle_hardware.h"
@@ -92,8 +91,6 @@ private:
   SteeringHardwareInterfacePtr steering_actuator_;
 
   byte led_rgb_value_[3];
-
-  SDKFPtr speed_estimator_;
 
   EKFPtr state_estimator_;
 
