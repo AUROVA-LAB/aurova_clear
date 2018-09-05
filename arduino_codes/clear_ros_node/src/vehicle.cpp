@@ -65,8 +65,8 @@ Vehicle::Vehicle()
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
 
-  speed_measures    = NULL;
-  steering_measures = NULL;
+  speed_measures_    = NULL;
+  steering_measures_ = NULL;
 
   speed_actuator_    = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
   steering_actuator_ = new SteeringHardwareInterface();
@@ -107,18 +107,18 @@ Vehicle::Vehicle()
   digitalWrite(BRAKE, HIGH);
 
   //desynchronising sampling times for I2C
-  if (SAMPLING_TIME_SPEED > SAMPLING_TIME_STEERING)
+  if (SAMPLING_TIME_SPEED_ > SAMPLING_TIME_STEERING_)
   {
-    timeLastComputeSteering = SAMPLING_TIME_STEERING * (float)(fabs(SAMPLING_TIME_STEERING - SAMPLING_TIME_SPEED))
-        / SAMPLING_TIME_SPEED;
+    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_ * (float)(fabs(SAMPLING_TIME_STEERING_ - SAMPLING_TIME_SPEED_))
+        / SAMPLING_TIME_SPEED_;
   }
-  else if (SAMPLING_TIME_STEERING > SAMPLING_TIME_SPEED)
+  else if (SAMPLING_TIME_STEERING_ > SAMPLING_TIME_SPEED_)
   {
-    timeLastComputeSpeed = SAMPLING_TIME_SPEED * (float)(fabs(SAMPLING_TIME_STEERING - SAMPLING_TIME_SPEED))
-        / SAMPLING_TIME_STEERING;
+    millis_since_last_speed_reading_ = SAMPLING_TIME_SPEED_ * (float)(fabs(SAMPLING_TIME_STEERING_ - SAMPLING_TIME_SPEED_))
+        / SAMPLING_TIME_STEERING_;
   }
   else
-    timeLastComputeSteering = SAMPLING_TIME_STEERING / 2.0;
+    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_ / 2.0;
 
 }
 
@@ -168,38 +168,38 @@ void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped&
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
                           ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
-  if (prediction_kalman_filter >= TIME_TO_PREDICT_MILLIS)
+  if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
   {
     state_estimator_->predict(speed_volts_);
-    prediction_kalman_filter = 0;
+    millis_since_last_EKF_prediction_ = 0;
   }
 
-  if (timeLastComputeSteering >= SAMPLING_TIME_STEERING)
+  if (millis_since_last_steering_reading_ >= SAMPLING_TIME_STEERING_)
   {
-    steering_measures = steering_actuator_->getSteeringMeasures();
+    steering_measures_ = steering_actuator_->getSteeringMeasures();
 
-    measured_state_.steering_angle_velocity = steering_measures[1] * PULSES_TO_DEG;
-    measured_state_.steering_angle = steering_measures[0] * PULSES_TO_DEG;
-    timeLastComputeSteering = 0;
-    if (fabs(steering_measures[0]) < 170)
-      Serial.println(steering_measures[0]);
+    measured_state_.steering_angle_velocity = steering_measures_[1] * PULSES_TO_DEG;
+    measured_state_.steering_angle = steering_measures_[0] * PULSES_TO_DEG;
+    millis_since_last_steering_reading_ = 0;
+    if (fabs(steering_measures_[0]) < 170)
+      Serial.println(steering_measures_[0]);
     state_estimator_->correctEnc(measured_state_.steering_angle);
   }
 
-  if (timeLastComputeSpeed >= SAMPLING_TIME_SPEED)
+  if (millis_since_last_speed_reading_ >= SAMPLING_TIME_SPEED_)
   {
-    speed_measures = speed_actuator_->getSpeedMeasures();
-    timeLastComputeSpeed = 0;
+    speed_measures_ = speed_actuator_->getSpeedMeasures();
+    millis_since_last_speed_reading_ = 0;
 
     float direction = 1.0;
     if (!speed_actuator_->getFlagForward())
       direction = -1.0;
 
-    float speed_left_rear_wheel = speed_measures[0] * METERS_PER_PULSE * direction;
+    float speed_left_rear_wheel = speed_measures_[0] * METERS_PER_PULSE * direction;
 
     measured_state_.speed = speed_left_rear_wheel;
-    measured_state_.acceleration = speed_measures[1] * METERS_PER_PULSE; // TODO--> check if direction is also needed here
-    measured_state_.jerk = speed_measures[2] * METERS_PER_PULSE;
+    measured_state_.acceleration = speed_measures_[1] * METERS_PER_PULSE; // TODO--> check if direction is also needed here
+    measured_state_.jerk = speed_measures_[2] * METERS_PER_PULSE;
 
     state_estimator_->correctHall(speed_left_rear_wheel);
   }
@@ -562,10 +562,10 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
     steering_angle_pwm_ = steering_angle_pwm_pid_;
   }
 
-  if (timeBeforeBrake > MAX_TIME_ZERO_VOLTS_TO_BRAKE)
+  if (zero_volts_millis_before_braking_ > MAX_TIME_ZERO_VOLTS_TO_BRAKE)
   {
     digitalWrite(BRAKE, HIGH);
-    timeBeforeBrake = 0;
+    zero_volts_millis_before_braking_ = 0;
   }
 
   speed_actuator_->actuateMotor(speed_volts_);

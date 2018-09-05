@@ -47,19 +47,19 @@ class Vehicle
 {
 private:
 
-  const unsigned int SAMPLING_TIME_SPEED = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0);       //ms
-  const unsigned int SAMPLING_TIME_STEERING = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0); //ms
-  const unsigned int TIME_TO_PREDICT_MILLIS = 50; //ms
+  const unsigned int SAMPLING_TIME_SPEED_ = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0);       //ms
+  const unsigned int SAMPLING_TIME_STEERING_ = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0); //ms
+  const unsigned int TIME_TO_PREDICT_MILLIS_ = 50; //ms
 
-  elapsedMillis timeLastComputeSteering = 0; //!< Timer to refresh steering information (trough the Teensy)
-  elapsedMillis timeLastComputeSpeed = 0; //!< Timer to refresh speed information (trough the Teensy)
+  elapsedMillis millis_since_last_steering_reading_ = 0; //!< Timer to refresh steering information (trough the Teensy)
+  elapsedMillis millis_since_last_speed_reading_ = 0; //!< Timer to refresh speed information (trough the Teensy)
 
-  elapsedMillis timeBeforeBrake = 0; //!< Timer to activate the brakes after MAX_TIME_ZERO_VOLTS_TO_BRAKE
+  elapsedMillis zero_volts_millis_before_braking_ = 0; //!< Timer to activate the brakes after MAX_TIME_ZERO_VOLTS_TO_BRAKE
 
-  elapsedMillis prediction_kalman_filter = 0; //!< Timer to control the EKF prediction rate (adjusted by means of TIME_TO_PREDICT_MILLIS)
+  elapsedMillis millis_since_last_EKF_prediction_ = 0; //!< Timer to control the EKF prediction rate (adjusted by means of TIME_TO_PREDICT_MILLIS)
 
-  float* speed_measures;
-  float* steering_measures;
+  float* speed_measures_;
+  float* steering_measures_;
 
   State estimated_state_;
   State measured_state_;
