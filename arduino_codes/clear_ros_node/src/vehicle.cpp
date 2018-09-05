@@ -6,101 +6,72 @@
  */
 
 #include <elapsedMillis.h>
-
-//#include "/opt/ros/kinetic/include/ros/master.h"
-#include "../headers/vehicle.h"
-#include "../headers/arduino_ros_interface.h"
-#include "../headers/hardware_description_constants.h"
-#include "../headers/configuration_vehicle_hardware.h"
-#include "../headers/pid.h"
-//#include "../headers/EKF.h"
-
-const unsigned int SAMPLING_TIME_SPEED = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0); //ms
-const unsigned int SAMPLING_TIME_STEERING = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0); //ms
-
-elapsedMillis timeLastComputeSteering = 0;
-elapsedMillis timeLastComputeSpeed = 0;
-
-elapsedMillis timeBeforeBrake = 0;
-
-elapsedMillis prediction_kalman_filter = 0;
-
-const unsigned int time_to_predict = 50;
-
-float* speed_measures;
-float* steering_measures;
-
-int count = 0;
-
-void checkSetpoint(float &speed)
-{
-  //Saturating the desired setpoint
-  if (speed > ABS_MAX_SPEED_METERS_SECOND)
-    speed = ABS_MAX_SPEED_METERS_SECOND;
-  else if (speed < -1 * ABS_MAX_SPEED_METERS_SECOND)
-    speed = -1 * ABS_MAX_SPEED_METERS_SECOND;
-}
+#include "vehicle.h"
+#include "arduino_ros_interface.h"
+#include "hardware_description_constants.h"
+#include "configuration_vehicle_hardware.h"
+#include "pid.h"
 
 Vehicle::Vehicle()
 {
-  operational_mode_ = CALIBRATION;
-  last_operational_mode_ = operational_mode_;
+  operational_mode_                        = CALIBRATION;
+  last_operational_mode_                   = operational_mode_;
 
-  estimated_state_.steering_angle = 0.0;           // deg
+  estimated_state_.steering_angle          = 0.0;  // deg
   estimated_state_.steering_angle_velocity = 0.0;  // deg/s
 
-  estimated_state_.speed = 0.0;                    // m/s
-  estimated_state_.acceleration = 0.0;             // m/s^2
-  estimated_state_.jerk = 0.0;                     // m/s^3
+  estimated_state_.speed                   = 0.0;  // m/s
+  estimated_state_.acceleration            = 0.0;  // m/s^2
+  estimated_state_.jerk                    = 0.0;  // m/s^3
 
-  measured_state_.steering_angle = 0.0;           // deg
-  measured_state_.steering_angle_velocity = 0.0;  // deg/s
+  measured_state_.steering_angle           = 0.0;  // deg
+  measured_state_.steering_angle_velocity  = 0.0;  // deg/s
 
-  measured_state_.speed = 0.0;                    // m/s
-  measured_state_.acceleration = 0.0;             // m/s^2
-  measured_state_.jerk = 0.0;                     // m/s^3
+  measured_state_.speed                    = 0.0;  // m/s
+  measured_state_.acceleration             = 0.0;  // m/s^2
+  measured_state_.jerk                     = 0.0;  // m/s^3
 
-  desired_state_.steering_angle = 0.0;            // deg
-  desired_state_.steering_angle_velocity = 0.0;   // deg/s
+  desired_state_.steering_angle            = 0.0;  // deg
+  desired_state_.steering_angle_velocity   = 0.0;  // deg/s
 
-  desired_state_.speed = 0.0;                     // m/s
-  desired_state_.acceleration = 0.0;              // m/s^2
-  desired_state_.jerk = 0.0;                      // m/s^3
+  desired_state_.speed                     = 0.0;  // m/s
+  desired_state_.acceleration              = 0.0;  // m/s^2
+  desired_state_.jerk                      = 0.0;  // m/s^3
 
-  desired_steering_state_reached_ = false;
-  desired_traslational_state_reached_ = false;
+  remote_control_.speed_volts                           = 0.0;
+  remote_control_.steering_angle_pwm                    = 0.0;
 
-  remote_control_.speed_volts = 0.0;
-  remote_control_.steering_angle_pwm = 0.0;
-
-  remote_control_.desired_state.steering_angle = 0.0;            // deg
+  remote_control_.desired_state.steering_angle          = 0.0;   // deg
   remote_control_.desired_state.steering_angle_velocity = 0.0;   // deg/s
 
-  remote_control_.desired_state.speed = 0.0;                     // m/s
-  remote_control_.desired_state.acceleration = 0.0;              // m/s^2
-  remote_control_.desired_state.jerk = 0.0;                      // m/s^3
+  remote_control_.desired_state.speed                   = 0.0;   // m/s
+  remote_control_.desired_state.acceleration            = 0.0;   // m/s^2
+  remote_control_.desired_state.jerk                    = 0.0;   // m/s^3
 
   error_code_ = NO_ERROR;
 
-  speed_volts_ = 0.0;
+  speed_volts_        = 0.0;
   steering_angle_pwm_ = 0.0;
 
-  speed_volts_pid_ = 0.0;
+  speed_volts_pid_        = 0.0;
   steering_angle_pwm_pid_ = 0.0;
 
-  left_steering_limit_switch_position_ = ABS_MAX_LEFT_ANGLE_DEG;
+  left_steering_limit_switch_position_  = ABS_MAX_LEFT_ANGLE_DEG;
   right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
 
-  flag_limiting_speed_by_reactive_ = false;
+  flag_limiting_speed_by_reactive_  = false;
   flag_speed_recommendation_active_ = false;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
 
-  speed_actuator_ = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
+  speed_measures    = NULL;
+  steering_measures = NULL;
+
+  speed_actuator_    = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
   steering_actuator_ = new SteeringHardwareInterface();
 
-  speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
+  speed_actuator_->  actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
   steering_actuator_->steeringMotor(0);
 
   speed_controller_ = new PID(&estimated_state_.speed, &speed_volts_pid_, &desired_state_.speed, SPEED_KP, SPEED_KI,
@@ -154,6 +125,14 @@ Vehicle::Vehicle()
 Vehicle::~Vehicle()
 {
 
+}
+
+void Vehicle::saturateSetpointIfNeeded(float &speed)
+{
+  if (speed > ABS_MAX_SPEED_METERS_SECOND)
+    speed = ABS_MAX_SPEED_METERS_SECOND;
+  else if (speed < -1 * ABS_MAX_SPEED_METERS_SECOND)
+    speed = -1 * ABS_MAX_SPEED_METERS_SECOND;
 }
 
 bool Vehicle::componentsCalibration()
@@ -308,7 +287,7 @@ int Vehicle::getOperationalMode(void)
 void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
                           ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
-  if (prediction_kalman_filter >= time_to_predict)
+  if (prediction_kalman_filter >= TIME_TO_PREDICT_MILLIS)
   {
     state_estimator_->predict(speed_volts_);
     prediction_kalman_filter = 0;
@@ -425,7 +404,7 @@ void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped&
   desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
 
   desired_state_.speed = desired_ackermann_state.drive.speed;
-  checkSetpoint(desired_state_.speed);
+  saturateSetpointIfNeeded(desired_state_.speed);
 
   desired_state_.acceleration = desired_ackermann_state.drive.acceleration;
   desired_state_.jerk = desired_ackermann_state.drive.jerk;
@@ -464,7 +443,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
           desired_state_.speed = max_recommended_speed;
           flag_limiting_speed_by_reactive_ = true;
         }
-        checkSetpoint(desired_state_.speed);
+        saturateSetpointIfNeeded(desired_state_.speed);
 
         desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
 
@@ -496,7 +475,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
         desired_state_.speed = remote_control_.desired_state.speed;
         flag_limiting_speed_by_reactive_ = false;
 
-        checkSetpoint(desired_state_.speed);
+        saturateSetpointIfNeeded(desired_state_.speed);
 
         desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
 

@@ -15,13 +15,14 @@
 #include "arduino_ros_interface.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "ackermann_msgs/AckermannDriveStamped.h"
-#include "../headers/DJI_DBUS.h"
-#include "../headers/speed_hardware_interface.h"
-#include "../headers/steering_hardware_interface.h"
-#include "../headers/pid.h"
+#include "DJI_DBUS.h"
+#include "speed_hardware_interface.h"
+#include "steering_hardware_interface.h"
+#include "pid.h"
 #include "sdkf.h"
 #include "EKF.h"
 #include "nav_msgs/Odometry.h"
+#include "configuration_vehicle_hardware.h"
 
 struct State
 {
@@ -46,15 +47,26 @@ typedef Vehicle* VehiclePtr;
 class Vehicle
 {
 private:
-  State covariance_state_;
+
+  const unsigned int SAMPLING_TIME_SPEED = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0);       //ms
+  const unsigned int SAMPLING_TIME_STEERING = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0); //ms
+  const unsigned int TIME_TO_PREDICT_MILLIS = 50; //ms
+
+  elapsedMillis timeLastComputeSteering = 0; //!< Timer to refresh steering information (trough the Teensy)
+  elapsedMillis timeLastComputeSpeed = 0; //!< Timer to refresh speed information (trough the Teensy)
+
+  elapsedMillis timeBeforeBrake = 0; //!< Timer to activate the brakes after MAX_TIME_ZERO_VOLTS_TO_BRAKE
+
+  elapsedMillis prediction_kalman_filter = 0; //!< Timer to control the EKF prediction rate (adjusted by means of TIME_TO_PREDICT_MILLIS)
+
+  float* speed_measures;
+  float* steering_measures;
+
   State estimated_state_;
   State measured_state_;
   State desired_state_;
 
-  bool desired_steering_state_reached_;
-  bool desired_traslational_state_reached_;
-  bool flag_limiting_speed_by_reactive_;
-  bool flag_speed_recommendation_active_;
+  bool flag_limiting_speed_by_reactive_;bool flag_speed_recommendation_active_;
 
   RemoteControl remote_control_;
 
@@ -85,11 +97,12 @@ private:
 
   EKFPtr state_estimator_;
 
-
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
   {
-   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
+
+  void saturateSetpointIfNeeded(float &speed);
 
 public:
 
@@ -186,14 +199,13 @@ public:
 
   void getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position);
 
-
   /*!
    * returns the current operational mode, that is the same that the current
    * state of the finite state machine: Reset, RC, ROS control or Emergency Stop
    * @param current_operational_mode
    */
   void getOperationalMode(int& current_operational_mode);
-  int  getOperationalMode(void);
+  int getOperationalMode(void);
 
   /*!
    * Returns the error code that can express different causes to be in Emergency
@@ -201,7 +213,7 @@ public:
    * @param requested_error_code
    */
   void getErrorCode(int& requested_error_code);
-  int  getErrorCode(void);
+  int getErrorCode(void);
 
   void resetSpeed();
 
