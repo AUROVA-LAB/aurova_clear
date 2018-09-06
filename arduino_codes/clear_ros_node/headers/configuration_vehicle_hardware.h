@@ -8,8 +8,6 @@
 #ifndef HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_
 #define HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_
 
-#include <math.h>
-
 //------------SAFETY------------//
 const int MAX_TIME_WITHOUT_REACTIVE_MILLIS = 200;
 

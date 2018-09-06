@@ -12,7 +12,7 @@
 #include "encoder_hardware_interface.h"
 
 class SpeedHardwareInterface;
-typedef  SpeedHardwareInterface* SpeedHardwareInterfacePtr;
+typedef SpeedHardwareInterface* SpeedHardwareInterfacePtr;
 
 /**
  * Class SpeedHardwareInterface
@@ -38,18 +38,15 @@ public:
    * ch1 and ch2 are the channels of the relay to control the velocity.
    */
   SpeedHardwareInterface(int ch1, int ch2);
-    ~SpeedHardwareInterface();
+  ~SpeedHardwareInterface();
 
-    /*
-     * The method that moves the vehicle
-     */
-   void actuateMotor(float voltage);
+  /*
+   * The method that moves the vehicle
+   */
+  void actuateMotor(float voltage);
 
-   float* getSpeedMeasures(void);
-   bool getFlagForward(void);
+  float* getSpeedMeasures(void);bool getFlagForward(void);
 
 };
-
-
 
 #endif /* HEADERS_SPEED_HARDWARE_INTERFACE_H_ */

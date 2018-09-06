@@ -65,8 +65,7 @@ private:
   State measured_state_;
   State desired_state_;
 
-  bool flag_limiting_speed_by_reactive_;
-  bool remote_control_use_PID_;
+  bool flag_limiting_speed_by_reactive_;bool remote_control_use_PID_;
 
   RemoteControl remote_control_;
 
@@ -202,7 +201,7 @@ public:
    * @param current_operational_mode
    */
   void getOperationalMode(int& current_operational_mode);
-  int  getOperationalMode(void);
+  int getOperationalMode(void);
 
   /*!
    * Returns the error code that can express different causes to be in Emergency
@@ -210,7 +209,7 @@ public:
    * @param requested_error_code
    */
   void getErrorCode(int& requested_error_code);
-  int  getErrorCode(void);
+  int getErrorCode(void);
 };
 
 #endif /* HEADERS_VEHICLE_H_ */

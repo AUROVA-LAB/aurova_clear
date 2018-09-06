@@ -8,7 +8,7 @@
 #ifndef HEADERS_ENCODER_HARDWARE_INTERFACE_H_
 #define HEADERS_ENCODER_HARDWARE_INTERFACE_H_
 
-#include <elapsedMillis.h> // For scheduling tasks
+#include <elapsedMillis.h>
 
 class EncoderHardwareInterface;
 typedef EncoderHardwareInterface* EncoderHardwareInterfacePtr;
@@ -20,7 +20,7 @@ private:
   // Buffers for I2C communication
   // Buffers are used to send and receive long integers
   int I2C_sizeFloat_;
-  byte I2C_sendBuffer_[sizeof(float)]; 			    // Sending buffer to store one long integer
+  byte I2C_sendBuffer_[sizeof(float)]; 	        // Sending buffer to store one long integer
   byte I2C_receiveBuffer_[1 + sizeof(float)]; 	// Reception buffer to store five long integers
 
 public:
@@ -30,9 +30,6 @@ public:
   byte encoderRead(byte code, float &data);
 
   byte encoderReset(int encNum);
-
-  byte encoderWrite(int encNum, long count);
-
 };
 
 #endif /* HEADERS_ENCODER_HARDWARE_INTERFACE_H_ */

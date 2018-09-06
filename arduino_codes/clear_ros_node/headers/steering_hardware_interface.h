@@ -38,12 +38,12 @@ public:
 
   /*!
    * Moves the vehicle steering
-   * @param direction is a PWM value
-   * 0 < dir < 256: moves RIGHT, with direction speed
-   * -256 < dir < 0: moves LEFT, with Abs(direction) speed
+   * @param desired_pwm is a PWM value with sign
+   * 0 < desired_pwm < 256: moves RIGHT,
+   * -256 < desired_pwm < 0: moves LEFT,
    * other case: stop motor
    */
-  void steeringMotor(int direction);
+  void steeringMotor(int desired_pwm);
 
   /*!
    * ISR that update the steering limits reading the sensors

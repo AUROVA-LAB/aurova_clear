@@ -29,7 +29,6 @@ private:
   float integral_;
   float derivative_;
 
-
   float error_;
   float previous_error_;
 
@@ -38,8 +37,7 @@ private:
 
   float max_, min_;
   float tolerance_threshold_to_output_zero_; //if the absolute value of the output is below
-                                            //this threshold, the output is set to zero
-
+                                             //this threshold, the output is set to zero
 
   float* input_;
   float* output_;
@@ -78,7 +76,5 @@ public:
   void resetPID(void);
 
 };
-
-
 
 #endif /* HEADERS_PID_H_ */

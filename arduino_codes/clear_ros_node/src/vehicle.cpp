@@ -310,7 +310,6 @@ void Vehicle::readRemoteControl(void)
             digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE; //! We always go to full manual when exiting from emergency
-          digitalWrite(ENABLE_MOTORS, LOW); //! and rearm the motors
         }
       }
 
@@ -380,9 +379,9 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 
   if (flag_limiting_speed_by_reactive_ || !remote_control_use_PID_)
   {
-    led_rgb_value_[0] = 0;
+    led_rgb_value_[0] = 255;
     led_rgb_value_[1] = 255;
-    led_rgb_value_[2] = 255;
+    led_rgb_value_[2] = 0;
   }
 
   analogWrite(LED_R, led_rgb_value_[0]);

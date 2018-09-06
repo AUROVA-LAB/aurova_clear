@@ -3,7 +3,7 @@
  *
  * This file contains the definitions of constant values to code operational
  * modes, errors, warnings, etc...
- */ 
+ */
 #ifndef ARDUINO_ROS_INTERFACE_H
 #define ARDUINO_ROS_INTERFACE_H
 

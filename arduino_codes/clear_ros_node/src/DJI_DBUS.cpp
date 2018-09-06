@@ -11,7 +11,7 @@
  Modified by F.Cadelas to simplify funcionality to channel decoding
  Modified by S. Cova to
  */
-#include "../headers/DJI_DBUS.h"
+#include "DJI_DBUS.h"
 
 void DJI_DBUS::begin()
 {

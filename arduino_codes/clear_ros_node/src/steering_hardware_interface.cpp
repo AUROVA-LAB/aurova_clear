@@ -8,10 +8,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#include "../headers/hardware_description_constants.h"
-#include "../headers/steering_hardware_interface.h"
-#include "../headers/configuration_vehicle_hardware.h"
-#include "../libraries/digitalWriteFast/digitalWriteFast.h"
+#include "hardware_description_constants.h"
+#include "steering_hardware_interface.h"
+#include "configuration_vehicle_hardware.h"
 
 //Error Vars
 const int ERROR_ENCODER_COUNT = 0b0001;
@@ -59,34 +58,33 @@ SteeringHardwareInterface::~SteeringHardwareInterface()
   delete steering_encoder_;
 }
 
-void SteeringHardwareInterface::steeringMotor(int direction)
+void SteeringHardwareInterface::steeringMotor(int desired_pwm)
 {
-  if (direction < 0 && direction >= -1 * ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSR) == HIGH)
+  if (desired_pwm < 0 && desired_pwm >= -1 * ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSR) == HIGH)
   {
     digitalWrite(pin_ina_, HIGH);
     digitalWrite(pin_inb_, LOW);
   }
-  else if (direction > 0 && direction <= ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSL) == HIGH)
+  else if (desired_pwm > 0 && desired_pwm <= ABS_MAX_STEERING_MOTOR_PWM && digitalRead(PIN_LSL) == HIGH)
   {
     digitalWrite(pin_ina_, LOW);
     digitalWrite(pin_inb_, HIGH);
   }
-  else if (direction == 0)
+  else if (desired_pwm == 0)
   {
     digitalWrite(pin_ina_, LOW);
     digitalWrite(pin_inb_, LOW);
-    direction = 0;
+    desired_pwm = 0;
   }
-
   else
   {
     error_direction = true;
     digitalWrite(pin_ina_, LOW);
     digitalWrite(pin_inb_, LOW);
-    direction = 0;
+    desired_pwm = 0;
   }
 
-  analogWrite(pin_pwm_, fabs(direction)); //Direction can't be negative
+  analogWrite(pin_pwm_, fabs(desired_pwm)); //Direction can't be negative
 
 }
 
