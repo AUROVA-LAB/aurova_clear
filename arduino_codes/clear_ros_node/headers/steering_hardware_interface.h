@@ -8,13 +8,10 @@
 #ifndef HEADERS_STEERING_HARDWARE_INTERFACE_H_
 #define HEADERS_STEERING_HARDWARE_INTERFACE_H_
 
-
 #include "encoder_hardware_interface.h"
 
-
 class SteeringHardwareInterface;
-typedef  SteeringHardwareInterface* SteeringHardwareInterfacePtr;
-
+typedef SteeringHardwareInterface* SteeringHardwareInterfacePtr;
 
 /**
  * Class SteeringHardwareInterface
@@ -36,47 +33,38 @@ private:
 public:
 
   EncoderHardwareInterfacePtr steering_encoder_;
-	SteeringHardwareInterface();
-     ~SteeringHardwareInterface();
+  SteeringHardwareInterface();
+  ~SteeringHardwareInterface();
 
+  /*!
+   * Moves the vehicle steering
+   * @param direction is a PWM value
+   * 0 < dir < 256: moves RIGHT, with direction speed
+   * -256 < dir < 0: moves LEFT, with Abs(direction) speed
+   * other case: stop motor
+   */
+  void steeringMotor(int direction);
 
-    /*!
-     * Moves the vehicle steering
-     * @param direction is a PWM value
-     * 0 < dir < 256: moves RIGHT, with direction speed
-     * -256 < dir < 0: moves LEFT, with Abs(direction) speed
-     * other case: stop motor
-     */
-    void steeringMotor(int direction);
+  /*!
+   * ISR that update the steering limits reading the sensors
+   * Any limit switch sensor call this interruption
+   */
+  static void doLimitSwitch(void);
 
-    /*!
-     * Calibrate the vehicle steering using the limit switch and the encoder
-     */
-    bool steeringCalibration(void);
+  /*!
+   * Convert the encoder_count in radians
+   * using the hardware_descriptions_constants.h, the motor reduction and the pulses per revolution
+   */
+  float* getSteeringMeasures(void);
 
-    /*!
-     * ISR that update the steering limits reading the sensors
-     * Any limit switch sensor call this interruption
-     */
-    static void doLimitSwitch(void);
+  /*!
+   * Verify some important variables and report if there are some error
+   * Return the binary error code
+   */
+  int getSteeringError(void);
 
-    /*!
-     * Convert the encoder_count in radians
-     * using the hardware_descriptions_constants.h, the motor reduction and the pulses per revolution
-     */
-    float* getSteeringMeasures(void);
-
-    /*!
-     * Verify some important variables and report if there are some error
-     * Return the binary error code
-     */
-    int getSteeringError(void);
-
-    int readLimitSwitches(void);
+  int readLimitSwitches(void);
 
 };
-
-
-
 
 #endif /* HEADERS_STEERING_HARDWARE_INTERFACE_H_ */

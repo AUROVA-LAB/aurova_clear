@@ -60,6 +60,7 @@ Vehicle::Vehicle()
   right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
 
   flag_limiting_speed_by_reactive_  = false;
+  remote_control_use_PID_ = true;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
@@ -270,32 +271,30 @@ void Vehicle::readRemoteControl(void)
       dBus_->UpdateChannels(); //! Load the new data
       dBus_->toChannels = RC_NEW_DATA_READED; //! Reset the flag to indicate "ready to receive new data"
 
-      // Speed and steering commands mapping
-      if (!REMOTE_CONTROL_USE_PID) //! We map directly the RC command to volts and pwm to actuate the motors
-      {
-        remote_control_.speed_volts = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
-                                               RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                               -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
-        remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
-                                                      RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                      ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
-      }
-      else //! To use the PID we map the RC command to steering degrees and speed meters per second
-      {
-        remote_control_.desired_state.speed = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
-                                                       RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                       -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
+      // We map the RC control rod positions to volts, pwm, meters per second and steering degrees, depending on the flag use_PID_
+      // the motors will use either the raw volts and pwm or the output of the PID controllers, that use the RC speed and steering
+      // as setpoints
 
-        remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
-                                                                RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                                ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
-      }
+      remote_control_.speed_volts = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
+                                             RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
+                                             -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
+      remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
+                                                    RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
+                                                    ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
+
+      remote_control_.desired_state.speed = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
+                                                     RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
+                                                     -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
+
+      remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
+                                                              RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
+                                                              ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
       // Operational mode switching
       if (operational_mode_ != EMERGENCY_STOP) //! During normal operation we switch between modes just reading the RC switches
       {
-        if (dBus_->channels[RC_EMERGENCY_SWITCH] != RC_NO_EMERGENCY)
+        if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_EMERGENCY)
           operational_mode_ = EMERGENCY_STOP;
         else if (dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_ROS_MODE)
           operational_mode_ = ROS_CONTROL;
@@ -306,13 +305,22 @@ void Vehicle::readRemoteControl(void)
       }else{ //! To exit from emergency mode we need to check four conditions
         if (operational_mode_ == EMERGENCY_STOP and
             dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED and
-            dBus_->channels[RC_EMERGENCY_SWITCH] == RC_NO_EMERGENCY and
+            dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_NO_EMERGENCY and
             dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM and
             digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE; //! We always go to full manual when exiting from emergency
           digitalWrite(ENABLE_MOTORS, LOW); //! and rearm the motors
         }
+      }
+
+      if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_DISABLE_PID && operational_mode_ == REMOTE_CONTROL_NOT_SAFE)
+      {
+        remote_control_use_PID_ = false;
+      }
+      else
+      {
+        remote_control_use_PID_ = true;
       }
 
       // Horn
@@ -370,7 +378,7 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
       break;
   }
 
-  if (flag_limiting_speed_by_reactive_)
+  if (flag_limiting_speed_by_reactive_ || !remote_control_use_PID_)
   {
     led_rgb_value_[0] = 0;
     led_rgb_value_[1] = 255;
@@ -384,106 +392,31 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 
 void Vehicle::calculateCommandOutputs(float max_recommended_speed)
 {
-  switch (operational_mode_)
+  if (operational_mode_ == REMOTE_CONTROL_NOT_SAFE || operational_mode_ == REMOTE_CONTROL)
   {
-    case REMOTE_CONTROL:
-      if (!REMOTE_CONTROL_USE_PID)
-      {
-        speed_volts_pid_ = remote_control_.speed_volts;
-        steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
-      }
-      else
-      {
-        if (remote_control_.desired_state.speed < max_recommended_speed)
-        {
-          desired_state_.speed = remote_control_.desired_state.speed;
-          flag_limiting_speed_by_reactive_ = false;
-        }
-        else
-        {
-          desired_state_.speed = max_recommended_speed;
-          flag_limiting_speed_by_reactive_ = true;
-        }
-        saturateSetpointIfNeeded(desired_state_.speed);
-
-        desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
-
-        if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
-        {
-          desired_state_.speed = 0.0;
-          //estimated_state_.speed = 0.0;
-
-          speed_volts_pid_ = 0.0;
-          resetSpeed();
-        }
-        else
-        {
-          speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_VOLTS);
-        }
-        steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
-                                         ABS_MAX_STEERING_MOTOR_PWM);
-      }
-      break;
-
-    case REMOTE_CONTROL_NOT_SAFE:
-      if (!REMOTE_CONTROL_USE_PID)
-      {
-        speed_volts_pid_ = remote_control_.speed_volts;
-        steering_angle_pwm_pid_ = remote_control_.steering_angle_pwm;
-      }
-      else
-      {
-        desired_state_.speed = remote_control_.desired_state.speed;
-        flag_limiting_speed_by_reactive_ = false;
-
-        saturateSetpointIfNeeded(desired_state_.speed);
-
-        desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
-
-        if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
-        {
-          desired_state_.speed = 0.0;
-          //estimated_state_.speed = 0.0;
-
-          speed_volts_pid_ = 0.0;
-          resetSpeed();
-        }
-        else
-        {
-          speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_VOLTS);
-        }
-        steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
-                                         ABS_MAX_STEERING_MOTOR_PWM);
-      }
-      break;
-
-    case ROS_CONTROL:
-      if (desired_state_.speed < max_recommended_speed)
-      {
-        flag_limiting_speed_by_reactive_ = false;
-      }
-      else
-      {
-        desired_state_.speed = max_recommended_speed;
-        flag_limiting_speed_by_reactive_ = true;
-      }
-
-      if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
-      {
-        desired_state_.speed = 0.0;
-        estimated_state_.speed = 0.0;
-
-        speed_volts_pid_ = 0.0;
-        resetSpeed();
-      }
-      else
-      {
-        speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_VOLTS);
-      }
-      steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
-                                       ABS_MAX_STEERING_MOTOR_PWM);
-      break;
+    desired_state_.speed = remote_control_.desired_state.speed;
+    desired_state_.steering_angle = remote_control_.desired_state.steering_angle;
   }
+
+  flag_limiting_speed_by_reactive_ = false;
+  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && desired_state_.speed > max_recommended_speed)
+  {
+    desired_state_.speed = max_recommended_speed;
+    flag_limiting_speed_by_reactive_ = true;
+  }
+  saturateSetpointIfNeeded(desired_state_.speed);
+  if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
+  {
+    desired_state_.speed = 0.0;
+    speed_volts_pid_ = 0.0;
+    resetSpeed();
+  }
+  else
+  {
+    speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_VOLTS);
+  }
+  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
+                                   ABS_MAX_STEERING_MOTOR_PWM);
 }
 
 void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
@@ -498,16 +431,23 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
   else
   {
     digitalWrite(ENABLE_MOTORS, LOW); //! Enable motors
-    //! Preparing speed motor actuation
-    speed_volts_ = speed_volts_pid_;
+
+    if (operational_mode_ == REMOTE_CONTROL_NOT_SAFE && !remote_control_use_PID_)
+    {
+      speed_volts_ = remote_control_.speed_volts;
+      steering_angle_pwm_ = remote_control_.steering_angle_pwm;
+    }
+    else
+    {
+      speed_volts_ = speed_volts_pid_;
+      steering_angle_pwm_ = steering_angle_pwm_pid_;
+    }
 
     if (fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE)
     {
       digitalWrite(BRAKE, LOW); //! Release brakes
       zero_volts_millis_before_braking_ = 0;
     }
-    //! Preparing steering motor actuation
-    steering_angle_pwm_ = steering_angle_pwm_pid_;
   }
 
   if (zero_volts_millis_before_braking_ > MAX_TIME_ZERO_VOLTS_TO_BRAKE)

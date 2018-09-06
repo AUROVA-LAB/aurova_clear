@@ -66,6 +66,7 @@ private:
   State desired_state_;
 
   bool flag_limiting_speed_by_reactive_;
+  bool remote_control_use_PID_;
 
   RemoteControl remote_control_;
 

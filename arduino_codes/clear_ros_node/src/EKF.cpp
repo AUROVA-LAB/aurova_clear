@@ -57,7 +57,7 @@ EKF::EKF(void)
 	base_Q[0][1] = 0.0;
 
 	base_Q[1][0] = 0.0;
-	base_Q[1][1] = SDKF_Q_COVARIANCE; //Speed prediction covariance (in ICINCO paper is 0.005)
+	base_Q[1][1] = EKF_Q_COVARIANCE; //Speed prediction covariance (in ICINCO paper is 0.005)
 
 	Q[0][0] = 0.0;
 	Q[0][1] = 0.0;
@@ -69,7 +69,7 @@ EKF::EKF(void)
 	z = 0.0;
 
 	Z = 0.0;
-	R_hall = SDKF_R_COVARIANCE;
+	R_hall = EKF_R_COVARIANCE;
 	R_enc  = STEERING_ENCODER_R_COVARIANCE;
 	R_ls   = STEERING_LIMIT_SWITCH_COVARIANCE;
 
