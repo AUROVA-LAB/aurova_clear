@@ -29,12 +29,12 @@
 #define PIN_CH2             49
 
 //Hardware
-#define EMERGENCY_SWITCH    29
-#define HORN                38
-#define LED_R               44
-#define LED_G               45
-#define LED_B               46
-#define ENABLE_MOTORS       41 // high = enabled
-#define BRAKE               39 // low = braking;
+#define ON_BOARD_EMERGENCY_SWITCH    29
+#define HORN                         38
+#define LED_R                        44
+#define LED_G                        45
+#define LED_B                        46
+#define ENABLE_MOTORS                41 // low = enabled
+#define BRAKE                        39 // high = braking;
 
 #endif /* HEADERS_HARDWARE_DESCRIPTION_CONSTANTS_H_ */

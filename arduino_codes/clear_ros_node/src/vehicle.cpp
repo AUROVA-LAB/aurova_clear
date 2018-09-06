@@ -251,7 +251,7 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
 
 void Vehicle::readOnBoardUserInterface(void)
 {
-  if (digitalRead(EMERGENCY_SWITCH) == LOW)
+  if (digitalRead(ON_BOARD_EMERGENCY_SWITCH) == LOW)
     operational_mode_ = EMERGENCY_STOP;
 }
 
@@ -266,49 +266,49 @@ void Vehicle::readRemoteControl(void)
   }
   else
   {
-    if (dBus_->toChannels == NEW_DATA_AVAILABLE) //! If there are new data to read
+    if (dBus_->toChannels == RC_NEW_DATA_AVAILABLE) //! If there are new data to read
     {
       dBus_->UpdateChannels(); //! Load the new data
-      dBus_->toChannels = READY_TO_RECEIVE_NEW_DATA; //! Reset the flag to indicate "ready to receive new data"
+      dBus_->toChannels = RC_NEW_DATA_READED; //! Reset the flag to indicate "ready to receive new data"
 
       // Speed and steering commands mapping
       if (!REMOTE_CONTROL_USE_PID) //! We map directly the RC command to volts and pwm to actuate the motors
       {
-        remote_control_.speed_volts = mapFloat(dBus_->channels[SPEED_CONTROL_ROD],
-                                               MIN_CONTROL_ROD_VALUE, MAX_CONTROL_ROD_VALUE,
+        remote_control_.speed_volts = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
+                                               RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
                                                -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
-        remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[STEERING_CONTROL_ROD],
-                                                      MIN_CONTROL_ROD_VALUE, MAX_CONTROL_ROD_VALUE,
+        remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
+                                                      RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
                                                       ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
       }
       else //! To use the PID we map the RC command to steering degrees and speed meters per second
       {
-        remote_control_.desired_state.speed = mapFloat(dBus_->channels[SPEED_CONTROL_ROD],
-                                                       MIN_CONTROL_ROD_VALUE, MAX_CONTROL_ROD_VALUE,
+        remote_control_.desired_state.speed = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
+                                                       RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
                                                        -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
 
-        remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[STEERING_CONTROL_ROD],
-                                                                MIN_CONTROL_ROD_VALUE, MAX_CONTROL_ROD_VALUE,
+        remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
+                                                                RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
                                                                 ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
       }
 
       // Operational mode switching
       if (operational_mode_ != EMERGENCY_STOP) //! During normal operation we switch between modes just reading the RC switches
       {
-        if (dBus_->channels[EMERGENCY_SWITCH] != NO_EMERGENCY)
+        if (dBus_->channels[RC_EMERGENCY_SWITCH] != RC_NO_EMERGENCY)
           operational_mode_ = EMERGENCY_STOP;
-        else if (dBus_->channels[OPERATIONAL_MODE_SWITCH] == ROS_MODE)
+        else if (dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_ROS_MODE)
           operational_mode_ = ROS_CONTROL;
-        else if (dBus_->channels[OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED)
+        else if (dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED)
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
         else
           operational_mode_ = REMOTE_CONTROL;
-      }else{
-        if (operational_mode_ == EMERGENCY_STOP and //! To exit from emergency mode we need to check three conditions
-            dBus_->channels[EMERGENCY_SWITCH] == NO_EMERGENCY and // RC
-            dBus_->channels[REARM_AND_HORN_CONTROL] == REARM and  // RC
-            digitalRead(EMERGENCY_SWITCH) == HIGH) // On-board emergency switch
+      }else{ //! To exit from emergency mode we need to check three conditions
+        if (operational_mode_ == EMERGENCY_STOP and
+            dBus_->channels[RC_EMERGENCY_SWITCH] == RC_NO_EMERGENCY and
+            dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM and
+            digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first two are from the RC while the last one reads the on-board emergency switch
         {
           operational_mode_ = REMOTE_CONTROL; //! We always go to RC when exiting from emergency
           digitalWrite(ENABLE_MOTORS, LOW); //! and rearm the motors
@@ -316,7 +316,7 @@ void Vehicle::readRemoteControl(void)
       }
 
       // Horn
-      if (dBus_->channels[REARM_AND_HORN_CONTROL] == ACTIVATE_HORN)
+      if (dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_ACTIVATE_HORN)
       {
         digitalWrite(HORN, LOW); // Let's horn!
       }
@@ -330,7 +330,7 @@ void Vehicle::readRemoteControl(void)
 
 void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 {
-  if (operational_mode_ != last_operational_mode_)
+  if (operational_mode_ != last_operational_mode_) //! Every time that a mode change happens we reset the PID controllers, for a fresh new start
   {
     resetSpeed();
     resetSteering();
@@ -346,8 +346,8 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   {
     case EMERGENCY_STOP:
 
-      digitalWrite(ENABLE_MOTORS, HIGH);
-      digitalWrite(BRAKE, HIGH);
+      digitalWrite(ENABLE_MOTORS, HIGH); //! Disable motors
+      digitalWrite(BRAKE, HIGH); //! Activate brakes
 
       led_rgb_value_[0] = 255;
       led_rgb_value_[1] = 0;
