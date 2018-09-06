@@ -14,7 +14,7 @@
 
 Vehicle::Vehicle()
 {
-  operational_mode_                        = REMOTE_CONTROL;
+  operational_mode_                        = REMOTE_CONTROL_NOT_SAFE;
   last_operational_mode_                   = operational_mode_;
 
   estimated_state_.steering_angle          = 0.0;  // deg
@@ -60,7 +60,6 @@ Vehicle::Vehicle()
   right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
 
   flag_limiting_speed_by_reactive_  = false;
-  flag_speed_recommendation_active_ = false;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
@@ -98,13 +97,13 @@ Vehicle::Vehicle()
   pinMode(LED_B, OUTPUT);
 
   pinMode(HORN, OUTPUT);
-  digitalWrite(HORN, HIGH);
+  digitalWrite(HORN, HIGH); //! Horn in silence
 
   pinMode(ENABLE_MOTORS, OUTPUT);
-  digitalWrite(ENABLE_MOTORS, LOW);
+  digitalWrite(ENABLE_MOTORS, HIGH); //! Motors disabled
 
   pinMode(BRAKE, OUTPUT);
-  digitalWrite(BRAKE, HIGH);
+  digitalWrite(BRAKE, HIGH); //! Brakes activated
 
   //desynchronising sampling times for I2C
   if (SAMPLING_TIME_SPEED_ > SAMPLING_TIME_STEERING_)
@@ -304,13 +303,14 @@ void Vehicle::readRemoteControl(void)
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
         else
           operational_mode_ = REMOTE_CONTROL;
-      }else{ //! To exit from emergency mode we need to check three conditions
+      }else{ //! To exit from emergency mode we need to check four conditions
         if (operational_mode_ == EMERGENCY_STOP and
+            dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED and
             dBus_->channels[RC_EMERGENCY_SWITCH] == RC_NO_EMERGENCY and
             dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM and
-            digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first two are from the RC while the last one reads the on-board emergency switch
+            digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
-          operational_mode_ = REMOTE_CONTROL; //! We always go to RC when exiting from emergency
+          operational_mode_ = REMOTE_CONTROL_NOT_SAFE; //! We always go to full manual when exiting from emergency
           digitalWrite(ENABLE_MOTORS, LOW); //! and rearm the motors
         }
       }
@@ -337,7 +337,8 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
     last_operational_mode_ = operational_mode_;
   }
 
-  if (millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS && flag_speed_recommendation_active_)
+  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE &&
+      millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
   }
@@ -345,10 +346,6 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   switch (operational_mode_)
   {
     case EMERGENCY_STOP:
-
-      digitalWrite(ENABLE_MOTORS, HIGH); //! Disable motors
-      digitalWrite(BRAKE, HIGH); //! Activate brakes
-
       led_rgb_value_[0] = 255;
       led_rgb_value_[1] = 0;
       led_rgb_value_[2] = 0;
@@ -373,7 +370,7 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
       break;
   }
 
-  if (flag_limiting_speed_by_reactive_ && flag_speed_recommendation_active_)
+  if (flag_limiting_speed_by_reactive_)
   {
     led_rgb_value_[0] = 0;
     led_rgb_value_[1] = 255;
@@ -397,7 +394,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
       }
       else
       {
-        if (remote_control_.desired_state.speed < max_recommended_speed || !flag_speed_recommendation_active_)
+        if (remote_control_.desired_state.speed < max_recommended_speed)
         {
           desired_state_.speed = remote_control_.desired_state.speed;
           flag_limiting_speed_by_reactive_ = false;
@@ -461,7 +458,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
       break;
 
     case ROS_CONTROL:
-      if (desired_state_.speed < max_recommended_speed || !flag_speed_recommendation_active_)
+      if (desired_state_.speed < max_recommended_speed)
       {
         flag_limiting_speed_by_reactive_ = false;
       }
@@ -486,45 +483,41 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
       steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
                                        ABS_MAX_STEERING_MOTOR_PWM);
       break;
-
-    case EMERGENCY_STOP:
-      speed_volts_ = SPEED_ZERO;
-      steering_angle_pwm_ = STEERING_CENTERED;
-      break;
   }
 }
 
 void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
 {
-  //bool ste_error = false;
-  //bool speed_error = false;
-
   if (operational_mode_ == EMERGENCY_STOP)
   {
-    speed_volts_ = 0;
-    steering_angle_pwm_ = 0;
+    digitalWrite(ENABLE_MOTORS, HIGH); //! Disable motors
+    digitalWrite(BRAKE, HIGH); //! Activate brakes
+    speed_volts_ = 0; //! Just in case
+    steering_angle_pwm_ = 0; //! Just in case
   }
   else
   {
+    digitalWrite(ENABLE_MOTORS, LOW); //! Enable motors
+    //! Preparing speed motor actuation
     speed_volts_ = speed_volts_pid_;
 
     if (fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE)
-      digitalWrite(BRAKE, LOW);
-
+    {
+      digitalWrite(BRAKE, LOW); //! Release brakes
+      zero_volts_millis_before_braking_ = 0;
+    }
+    //! Preparing steering motor actuation
     steering_angle_pwm_ = steering_angle_pwm_pid_;
   }
 
   if (zero_volts_millis_before_braking_ > MAX_TIME_ZERO_VOLTS_TO_BRAKE)
   {
     digitalWrite(BRAKE, HIGH);
-    zero_volts_millis_before_braking_ = 0;
   }
 
+  //! Actuating motors!
   speed_actuator_->actuateMotor(speed_volts_);
   steering_actuator_->steeringMotor(steering_angle_pwm_);
-  //ste_error = steering_actuator_->steering_motor(steering_angle_pwm_);
-
-  //if(ste_error) error_code_ = STEERING_CONTROL_ERROR;
 
   //Passing the applied values to communicate them to ROS
   speed_volts_and_steering_pwm_being_applicated.data[0] = speed_volts_;
@@ -612,9 +605,4 @@ void Vehicle::getErrorCode(int& requested_error_code)
 int Vehicle::getErrorCode(void)
 {
   return (error_code_);
-}
-
-void Vehicle::setFlagSpeedRecommendationActive(bool flag_state)
-{
-  flag_speed_recommendation_active_ = flag_state;
 }

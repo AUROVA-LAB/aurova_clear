@@ -79,7 +79,7 @@ const float MIN_VOLTS_TO_ACTUATE_MOTOR = 0.0;
 
 const float MIN_SETPOINT_TO_USE_PID = 0.05;
 
-const int MAX_TIME_ZERO_VOLTS_TO_BRAKE = 5000; //millis
+const int MAX_TIME_ZERO_VOLTS_TO_BRAKE = 2000; //millis
 
 //------------PID AND SDKF --------//
 const bool REMOTE_CONTROL_USE_PID = true;

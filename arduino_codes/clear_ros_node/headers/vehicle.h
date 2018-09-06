@@ -65,7 +65,7 @@ private:
   State measured_state_;
   State desired_state_;
 
-  bool flag_limiting_speed_by_reactive_;bool flag_speed_recommendation_active_;
+  bool flag_limiting_speed_by_reactive_;
 
   RemoteControl remote_control_;
 
@@ -210,9 +210,6 @@ public:
    */
   void getErrorCode(int& requested_error_code);
   int  getErrorCode(void);
-
-  void setFlagSpeedRecommendationActive(bool flag_state);
-
 };
 
 #endif /* HEADERS_VEHICLE_H_ */

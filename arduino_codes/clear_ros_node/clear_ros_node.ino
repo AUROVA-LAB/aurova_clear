@@ -89,7 +89,6 @@ void cb_desiredVerboseLevel(const std_msgs::Int16& desired_verbose_level_msg)
 void cb_maxRecommendedSpeed(const std_msgs::Float32& max_recommended_speed_msg)
 {
   max_recommended_speed = max_recommended_speed_msg.data;
-  AckermannVehicle.setFlagSpeedRecommendationActive(true);
   reactive_watchdog = 0;
 }
 
