@@ -21,6 +21,23 @@
 #define BAUDRATE 100000
 #define RC_PORT Serial2
 
+//! Custom defines to give name to the DJI DT7 Remote Control channels and values
+#define MIN_CONTROL_ROD_VALUE  364.0
+#define MAX_CONTROL_ROD_VALUE 1684.0
+
+#define NEW_DATA_AVAILABLE 1
+#define READY_TO_RECEIVE_NEW_DATA 0
+#define SPEED_CONTROL_ROD 2
+#define STEERING_CONTROL_ROD 0
+#define EMERGENCY_SWITCH 6
+#define NO_EMERGENCY 1024
+#define OPERATIONAL_MODE_SWITCH 5
+#define ROS_MODE 1541
+#define RC_SAFETY_SYSTEM_DISABLED 1541
+#define REARM_AND_HORN_CONTROL 4
+#define REARM 364
+#define ACTIVATE_HORN 1684
+
 //#define ALL_CHANNELS
 
 class DJI_DBUS;
