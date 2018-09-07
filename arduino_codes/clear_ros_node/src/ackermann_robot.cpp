@@ -5,14 +5,14 @@
  *      Author: idelpino
  */
 
+#include <ackermann_robot.h>
 #include <elapsedMillis.h>
-#include "vehicle.h"
 #include "arduino_ros_interface.h"
 #include "hardware_description_constants.h"
 #include "configuration_vehicle_hardware.h"
 #include "pid.h"
 
-Vehicle::Vehicle()
+AckermannRobot::AckermannRobot()
 {
   operational_mode_                        = REMOTE_CONTROL_NOT_SAFE;
   last_operational_mode_                   = operational_mode_;
@@ -49,6 +49,7 @@ Vehicle::Vehicle()
   remote_control_.desired_state.jerk                    = 0.0;   // m/s^3
 
   error_code_ = NO_ERROR;
+  warning_code_ = NO_WARNING;
 
   speed_volts_        = 0.0;
   steering_angle_pwm_ = 0.0;
@@ -122,7 +123,7 @@ Vehicle::Vehicle()
 
 }
 
-Vehicle::~Vehicle()
+AckermannRobot::~AckermannRobot()
 {
 
 }
@@ -130,7 +131,7 @@ Vehicle::~Vehicle()
 //////////////////////////
 // Private interface
 //////////////////////////
-void Vehicle::saturateSetpointIfNeeded(float &speed)
+void AckermannRobot::saturateSetpointIfNeeded(float &speed)
 {
   if (speed > ABS_MAX_SPEED_METERS_SECOND)
     speed = ABS_MAX_SPEED_METERS_SECOND;
@@ -138,12 +139,12 @@ void Vehicle::saturateSetpointIfNeeded(float &speed)
     speed = -1 * ABS_MAX_SPEED_METERS_SECOND;
 }
 
-void Vehicle::resetSpeed(void)
+void AckermannRobot::resetSpeed(void)
 {
   speed_controller_->resetPID();
 }
 
-void Vehicle::resetSteering(void)
+void AckermannRobot::resetSteering(void)
 {
   steering_controller_->resetPID();
 }
@@ -152,7 +153,7 @@ void Vehicle::resetSteering(void)
 ////////////////////////////////////////
 // Public interface
 ////////////////////////////////////////
-void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
+void AckermannRobot::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
 {
   desired_state_.steering_angle = desired_ackermann_state.drive.steering_angle;
   desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
@@ -165,7 +166,7 @@ void Vehicle::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped&
 
 }
 
-void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
+void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
                           ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
   if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
@@ -249,13 +250,14 @@ void Vehicle::updateState(ackermann_msgs::AckermannDriveStamped& estimated_acker
   estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
 }
 
-void Vehicle::readOnBoardUserInterface(void)
+void AckermannRobot::readOnBoardUserInterface(void)
 {
   if (digitalRead(ON_BOARD_EMERGENCY_SWITCH) == LOW)
     operational_mode_ = EMERGENCY_STOP;
+    error_code_ = ON_BOARD_EMERGENCY_SWITCH_ACTIVATED;
 }
 
-void Vehicle::readRemoteControl(void)
+void AckermannRobot::readRemoteControl(void)
 {
   dBus_->FeedLine(); //! Makes a memcopy of the RC buffer content
 
@@ -263,6 +265,7 @@ void Vehicle::readRemoteControl(void)
   if (dBus_->failsafe_status != DBUS_SIGNAL_OK)
   {
     operational_mode_ = EMERGENCY_STOP;
+    error_code_ = REMOTE_CONTROL_LOST;
   }
   else
   {
@@ -295,7 +298,10 @@ void Vehicle::readRemoteControl(void)
       if (operational_mode_ != EMERGENCY_STOP) //! During normal operation we switch between modes just reading the RC switches
       {
         if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_EMERGENCY)
+        {
           operational_mode_ = EMERGENCY_STOP;
+          error_code_ = RC_EMERGENCY_SWITCH_ACTIVATED;
+        }
         else if (dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_ROS_MODE)
           operational_mode_ = ROS_CONTROL;
         else if (dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED)
@@ -310,6 +316,7 @@ void Vehicle::readRemoteControl(void)
             digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE; //! We always go to full manual when exiting from emergency
+          error_code_ = NO_ERROR;
         }
       }
 
@@ -335,7 +342,7 @@ void Vehicle::readRemoteControl(void)
   }
 }
 
-void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
+void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 {
   if (operational_mode_ != last_operational_mode_) //! Every time that a mode change happens we reset the PID controllers, for a fresh new start
   {
@@ -348,6 +355,7 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
       millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
+    error_code_ = REACTIVE_SAFETY_TOPIC_NOT_RECEIVED;
   }
 
   switch (operational_mode_)
@@ -389,7 +397,7 @@ void Vehicle::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   analogWrite(LED_B, led_rgb_value_[2]);
 }
 
-void Vehicle::calculateCommandOutputs(float max_recommended_speed)
+void AckermannRobot::calculateCommandOutputs(float max_recommended_speed)
 {
   if (operational_mode_ == REMOTE_CONTROL_NOT_SAFE || operational_mode_ == REMOTE_CONTROL)
   {
@@ -402,6 +410,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
   {
     desired_state_.speed = max_recommended_speed;
     flag_limiting_speed_by_reactive_ = true;
+    warning_code_ = LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER;
   }
   saturateSetpointIfNeeded(desired_state_.speed);
   if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
@@ -418,7 +427,7 @@ void Vehicle::calculateCommandOutputs(float max_recommended_speed)
                                    ABS_MAX_STEERING_MOTOR_PWM);
 }
 
-void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
+void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
 {
   if (operational_mode_ == EMERGENCY_STOP)
   {
@@ -469,7 +478,7 @@ void Vehicle::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_s
 /////////////////////////////////////////////
 // Setters and getters
 /////////////////////////////////////////////
-void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo)
+void AckermannRobot::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo)
 {
   desired_ackermann_state_echo.drive.steering_angle = desired_state_.steering_angle;
   desired_ackermann_state_echo.drive.steering_angle_velocity = desired_state_.steering_angle_velocity;
@@ -479,14 +488,14 @@ void Vehicle::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ack
   desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
 }
 
-void Vehicle::setSpeedAndSteeringPIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,
+void AckermannRobot::setSpeedAndSteeringPIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,
                              const std_msgs::Float32MultiArray& desired_ste_pid_gains)
 {
   setSpeedPIDGains(desired_vel_pid_gains);
   setSteeringPIDGains(desired_ste_pid_gains);
 }
 
-void Vehicle::setSpeedPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
+void AckermannRobot::setSpeedPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
 {
   float kp = desired_pid_gains.data[0];
   float ki = desired_pid_gains.data[1];
@@ -495,12 +504,12 @@ void Vehicle::setSpeedPIDGains(const std_msgs::Float32MultiArray& desired_pid_ga
   speed_controller_->setPIDGains(kp, ki, kd);
 }
 
-void Vehicle::getSpeedPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
+void AckermannRobot::getSpeedPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
   speed_controller_->getPIDGains(current_pid_gains.data[0], current_pid_gains.data[1], current_pid_gains.data[2]);
 }
 
-void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
+void AckermannRobot::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid_gains)
 {
   float kp = desired_pid_gains.data[0];
   float ki = desired_pid_gains.data[1];
@@ -509,39 +518,49 @@ void Vehicle::setSteeringPIDGains(const std_msgs::Float32MultiArray& desired_pid
   steering_controller_->setPIDGains(kp, ki, kd);
 }
 
-void Vehicle::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
+void AckermannRobot::getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains)
 {
   steering_controller_->getPIDGains(current_pid_gains.data[0], current_pid_gains.data[1], current_pid_gains.data[2]);
 }
 
-void Vehicle::setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position)
+void AckermannRobot::setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position)
 {
   left_steering_limit_switch_position_ = desired_limit_switches_position.data[0];
   right_steering_limit_switch_position_ = desired_limit_switches_position.data[1];
 }
 
-void Vehicle::getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position)
+void AckermannRobot::getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position)
 {
   current_limit_switches_position.data[0] = left_steering_limit_switch_position_;
   current_limit_switches_position.data[1] = right_steering_limit_switch_position_;
 }
 
-void Vehicle::getOperationalMode(int& current_operational_mode)
+void AckermannRobot::getOperationalMode(int& current_operational_mode)
 {
   current_operational_mode = operational_mode_;
 }
 
-int Vehicle::getOperationalMode(void)
+int AckermannRobot::getOperationalMode(void)
 {
   return (operational_mode_);
 }
 
-void Vehicle::getErrorCode(int& requested_error_code)
+void AckermannRobot::getErrorCode(int& requested_error_code)
 {
   requested_error_code = error_code_;
 }
 
-int Vehicle::getErrorCode(void)
+int AckermannRobot::getErrorCode(void)
 {
   return (error_code_);
+}
+
+void AckermannRobot::getWarningCode(int& requested_warning_code)
+{
+  requested_warning_code = warning_code_;
+}
+
+int AckermannRobot::getWarningCode(void)
+{
+  return (warning_code_);
 }

@@ -1,4 +1,4 @@
-/*! \file vehicle.h
+/*! \file ackermann_robot.h
  *  \brief Interface with the arduino functionalities
  *
  *  This class reads the sensors, the remote control commands
@@ -9,8 +9,8 @@
  *      Author: idelpino
  */
 
-#ifndef HEADERS_VEHICLE_H_
-#define HEADERS_VEHICLE_H_
+#ifndef HEADERS_ACKERMANN_ROBOT_H_
+#define HEADERS_ACKERMANN_ROBOT_H_
 
 #include "arduino_ros_interface.h"
 #include "std_msgs/Float32MultiArray.h"
@@ -40,10 +40,10 @@ struct RemoteControl
   State desired_state;
 };
 
-class Vehicle;
-typedef Vehicle* VehiclePtr;
+class AckermannRobot;
+typedef AckermannRobot* AckermannRobotPtr;
 
-class Vehicle
+class AckermannRobot
 {
 private:
 
@@ -72,6 +72,7 @@ private:
   int operational_mode_;
   int last_operational_mode_;
   int error_code_;
+  int warning_code_;
 
   PIDPtr speed_controller_;
   PIDPtr steering_controller_;
@@ -107,8 +108,8 @@ private:
 
 public:
 
-  Vehicle();
-  ~Vehicle();
+  AckermannRobot();
+  ~AckermannRobot();
 
   /*!
    * Maps the variables in the ROS message to the inner State struct variables: Speed, Acceleration,
@@ -205,11 +206,20 @@ public:
 
   /*!
    * Returns the error code that can express different causes to be in Emergency
-   * Stop state, (sensor failure... ) or give NO_ERROR code.
+   * Stop state, (communication failures... ) or give NO_ERROR code.
    * @param requested_error_code
    */
   void getErrorCode(int& requested_error_code);
   int getErrorCode(void);
+
+  /*!
+   * Returns the warning code that express different non-critical alarms
+   * (speed limited by reactive safety layer... ) or give NO_WARNING code.
+   *
+   * @param requested_warning_code
+   */
+  void getWarningCode(int& requested_warning_code);
+  int getWarningCode(void);
 };
 
-#endif /* HEADERS_VEHICLE_H_ */
+#endif /* HEADERS_ACKERMANN_ROBOT_H_ */

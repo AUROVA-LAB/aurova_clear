@@ -15,10 +15,11 @@
  * at this moment (please keep this comment up to date):
  * - Operation mode
  * - Error code
- * - Warning code
+ * - Ros interface warning code
+ * - Robot warning code
  * - Verbose level
  */
-#define NUM_OF_ARDUINO_STATUS_VARIABLES 4
+#define NUM_OF_CLEAR_STATUS_VARIABLES   5
 #define NUM_OF_CONTROLLED_MOTORS        2
 #define NUM_OF_PID_GAINS                3
 #define NUM_OF_STEERING_LIMIT_SWITCHES  2
@@ -38,15 +39,15 @@
 #define REMOTE_CONTROL_NOT_SAFE 3
 
 //! Error codes
-#define NO_ERROR               0
-#define REMOTE_CONTROL_LOST    1
-#define ROS_COMMUNICATION_LOST 2
-#define VELOCITY_CONTROL_ERROR 3
-#define STEERING_CONTROL_ERROR 4
-#define PID_DT_EQUAL_ZERO      5
+#define NO_ERROR                            0
+#define REMOTE_CONTROL_LOST                 1
+#define ON_BOARD_EMERGENCY_SWITCH_ACTIVATED 2
+#define RC_EMERGENCY_SWITCH_ACTIVATED       3
+#define REACTIVE_SAFETY_TOPIC_NOT_RECEIVED  4
 
 //! Warning codes
-#define NO_WARNINGS                                           0
-#define RECEIVING_ROS_CONTROLS_WHILE_NOT_BEING_IN_ROS_MODE    1 //Callbacks are activated but not listened
+#define NO_WARNING                                           0
+#define RECEIVING_ROS_CONTROLS_WHILE_NOT_BEING_IN_ROS_MODE   1 //Callbacks are activated but not listened
+#define LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER              2
 
 #endif
