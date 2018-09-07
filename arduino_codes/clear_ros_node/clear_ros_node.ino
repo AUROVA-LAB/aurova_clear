@@ -138,9 +138,9 @@ void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forw
 /*! \brief Callback to store the maximum recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_backward_recommended_speed_msg)
+void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_backward_speed_msg)
 {
-  max_recommended_backward_speed = max_backward_recommended_speed_msg.data;
+  max_recommended_backward_speed = max_recommended_backward_speed_msg.data;
   reactive_watchdog = 0;
 }
 
@@ -316,7 +316,7 @@ void sendCLEARStatus(void)
   CLEAR_status.data[1] = myRobot.getErrorCode();
   CLEAR_status.data[2] = ros_interface_warning_code;
   CLEAR_status.data[3] = myRobot.getWarningCode();
-  CLEAR_status.data[4] = verbose_level;
+  CLEAR_status.data[4] = verbose_level; //DEBUG (float)reactive_watchdog;
 
   CLEAR_status_publisher.publish(&CLEAR_status);
 }
@@ -356,7 +356,7 @@ void reserveDynamicMemory(void)
  */
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(57600);
 
   wdt_disable();           //!< watchdog timer configuration
   wdt_enable(WDTO_500MS);  //!< it is set to automatically reboot the arduino in case of main loop hanging
@@ -468,6 +468,17 @@ void sendOutputsToROS(void)
 }
 
 /*!
+ * \brief We only need to know if the watchdog timer is over the MAX_TIME_WITHOUT_REACTIVE_MILLIS
+ * threshold, so if it is the case we saturate the value to avoid overflow
+ */
+void saturateSafetyWatchdogIfNeeded(void)
+{
+  const int MARGIN_MS = 1000; // Any number greater than zero should work fine
+  if((int)reactive_watchdog > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
+    reactive_watchdog = MAX_TIME_WITHOUT_REACTIVE_MILLIS + MARGIN_MS;
+}
+
+/*!
  * \brief Arduino main loop, from here are managed all communications, sensors and actuators
  */
 void loop()
@@ -484,8 +495,8 @@ void loop()
 
   myRobot.readRemoteControl(); //!< Decode and map the RC signals
 
-  int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the safety watchdog value to the finite state machine
-  myRobot.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
+  saturateSafetyWatchdogIfNeeded(); //!< To avoid overflow
+  myRobot.updateFiniteStateMachine((int)reactive_watchdog);
 
   myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); //!< It uses the reactive safety system speed limitation
 

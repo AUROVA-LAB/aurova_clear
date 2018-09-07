@@ -253,8 +253,10 @@ void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimate
 void AckermannRobot::readOnBoardUserInterface(void)
 {
   if (digitalRead(ON_BOARD_EMERGENCY_SWITCH) == LOW)
+  {
     operational_mode_ = EMERGENCY_STOP;
     error_code_ = ON_BOARD_EMERGENCY_SWITCH_ACTIVATED;
+  }
 }
 
 void AckermannRobot::readRemoteControl(void)
@@ -352,6 +354,7 @@ void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   }
 
   if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE &&
+      operational_mode_ != EMERGENCY_STOP &&
       millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
@@ -406,6 +409,7 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed
   }
 
   flag_limiting_speed_by_reactive_ = false;
+  warning_code_ = NO_WARNING;
   if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && (desired_state_.speed > max_recommended_forward_speed || desired_state_.speed < max_recommended_backward_speed))
   {
     if(desired_state_.speed > max_recommended_forward_speed)
