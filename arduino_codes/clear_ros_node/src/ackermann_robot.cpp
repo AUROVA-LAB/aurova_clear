@@ -397,7 +397,7 @@ void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
   analogWrite(LED_B, led_rgb_value_[2]);
 }
 
-void AckermannRobot::calculateCommandOutputs(float max_recommended_speed)
+void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed, float max_recommended_backward_speed)
 {
   if (operational_mode_ == REMOTE_CONTROL_NOT_SAFE || operational_mode_ == REMOTE_CONTROL)
   {
@@ -406,9 +406,13 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_speed)
   }
 
   flag_limiting_speed_by_reactive_ = false;
-  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && desired_state_.speed > max_recommended_speed)
+  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && (desired_state_.speed > max_recommended_forward_speed || desired_state_.speed < max_recommended_backward_speed))
   {
-    desired_state_.speed = max_recommended_speed;
+    if(desired_state_.speed > max_recommended_forward_speed)
+      desired_state_.speed = max_recommended_forward_speed;
+    else if (desired_state_.speed < max_recommended_backward_speed)
+      desired_state_.speed = max_recommended_backward_speed;
+
     flag_limiting_speed_by_reactive_ = true;
     warning_code_ = LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER;
   }

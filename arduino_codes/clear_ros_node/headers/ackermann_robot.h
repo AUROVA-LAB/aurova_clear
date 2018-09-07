@@ -148,7 +148,7 @@ public:
    * forward velocity and steering actuators. The inputs are the measured and desired states.
    * This function is used in ROS control and Reset modes
    */
-  void calculateCommandOutputs(float max_recommended_speed);
+  void calculateCommandOutputs(float max_recommended_speed, float max_recommended_backward_speed);
 
   /*!
    * Writes to the Arduino outputs the required voltages and PWM values

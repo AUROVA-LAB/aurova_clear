@@ -85,7 +85,8 @@ ros::NodeHandle nh; //!< The ros node implements the high level interface
 ////////////////////////
 // Inputs
 int verbose_level = MAX_VERBOSE_LEVEL; //!< Variable to set the amount of debugging information that is sent trough the ROS interface
-float max_recommended_speed = 0.0; //!< Variable to store the maximum speed recommended by the reactive systems
+float max_recommended_forward_speed  = 0.0; //!< Variable to store the maximum forward speed recommended by the reactive systems
+float max_recommended_backward_speed = 0.0; //!< Variable to store the maximum backward speed recommended by the reactive systems
 
 // Messages to store input topics data, there is no need of initialising them
 // because they are only used after the callback executions.
@@ -125,12 +126,21 @@ void cb_desiredVerboseLevel(const std_msgs::Int16& desired_verbose_level_msg)
   verbose_level = desired_verbose_level_msg.data;
 }
 
+/*! \brief Callback to store the maximum forward recommended speed, it sets a flag to indicate that the safety system is alive
+ *  and resets the watchdog
+ */
+void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forward_speed_msg)
+{
+  max_recommended_forward_speed = max_recommended_forward_speed_msg.data;
+  reactive_watchdog = 0;
+}
+
 /*! \brief Callback to store the maximum recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-void cb_maxRecommendedSpeed(const std_msgs::Float32& max_recommended_speed_msg)
+void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_backward_recommended_speed_msg)
 {
-  max_recommended_speed = max_recommended_speed_msg.data;
+  max_recommended_backward_speed = max_backward_recommended_speed_msg.data;
   reactive_watchdog = 0;
 }
 
@@ -204,10 +214,16 @@ void cb_limitSwitchesCalibration(const std_msgs::Float32MultiArray& limit_switch
 ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level", &cb_desiredVerboseLevel);
 
 /*!
- * Subscriber that receives the maximum speed for the platform, it comes from the safety system
+ * Subscriber that receives the maximum forward speed for the platform, it comes from the safety system
  */
-ros::Subscriber<std_msgs::Float32> max_recommended_speed_subscriber(
-    "velocity_recommender_alg_node/forward_recommended_velocity", &cb_maxRecommendedSpeed);
+ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
+    "velocity_recommender_alg_node/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
+
+/*!
+ * Subscriber that receives the maximum backward speed for the platform, it comes from the safety system
+ */
+ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
+    "velocity_recommender_alg_node/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the setpoint for the PID controllers (steering in deg and speed in m/s)
@@ -380,7 +396,8 @@ void setup()
   nh.advertise(estimated_ackermann_publisher);
   nh.advertise(covariance_ackermann_publisher);
 
-  nh.subscribe(max_recommended_speed_subscriber);
+  nh.subscribe(max_recommended_forward_speed_subscriber);
+  nh.subscribe(max_recommended_backward_speed_subscriber);
 }
 
 /*!
@@ -470,7 +487,7 @@ void loop()
   int millisSinceLastReactiveUpdate = reactive_watchdog; //!< Created to pass the safety watchdog value to the finite state machine
   myRobot.updateFiniteStateMachine(millisSinceLastReactiveUpdate);
 
-  myRobot.calculateCommandOutputs(max_recommended_speed); //!< It uses the reactive safety system speed limitation
+  myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); //!< It uses the reactive safety system speed limitation
 
   myRobot.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); //!< Here we actuate the motors
 
