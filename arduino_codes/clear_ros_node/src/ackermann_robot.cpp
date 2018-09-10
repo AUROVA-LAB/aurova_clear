@@ -1,5 +1,4 @@
-/*
- * vehicle.cpp
+/*! |file vehicle.cpp
  *
  *  Created on: 3 Nov 2017
  *      Author: idelpino

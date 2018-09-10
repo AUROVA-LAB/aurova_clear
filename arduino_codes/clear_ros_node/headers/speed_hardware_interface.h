@@ -1,5 +1,4 @@
-/*
- * speed_hardware_interface.h
+/*! \file speed_hardware_interface.h
  *
  *  Created on: 6 Nov 2017
  *      Author: idelpino

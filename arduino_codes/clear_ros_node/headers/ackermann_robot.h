@@ -1,4 +1,5 @@
 /*! \file ackermann_robot.h
+ *
  *  \brief Interface with the arduino functionalities
  *
  *  This class reads the sensors, the remote control commands

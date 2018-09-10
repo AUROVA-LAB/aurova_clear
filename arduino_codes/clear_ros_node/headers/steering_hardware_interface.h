@@ -1,5 +1,4 @@
-/*
- * steering_hardware_interface.h
+/*! \file steering_hardware_interface.h
  *
  *  Created on: Nov 17, 2017
  *      Author: saul

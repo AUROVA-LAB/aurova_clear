@@ -1,5 +1,4 @@
-/*
- * hardware_description_constants.h
+/*! \file hardware_description_constants.h
  *
  *  Created on: 7 Nov 2017
  *      Author: idelpino

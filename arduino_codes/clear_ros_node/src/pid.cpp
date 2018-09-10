@@ -1,5 +1,4 @@
-/*
- * pid.cpp
+/*! \file pid.cpp
  *
  *  Created on: Mar 28, 2018
  *      Author: idelpino

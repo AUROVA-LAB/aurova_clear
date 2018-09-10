@@ -1,4 +1,5 @@
-/*
+/*! \file DJI_DBUS.h
+ *
  DJI DBUS data decoder library
  (c) S. Driussi 20141215
  Not for commercial use
@@ -8,7 +9,7 @@
 
  Refer to naza_dbus_decoder_wiring.jpg diagram for proper connection
 
- Modified by F.Cadelas to simplify funcionality to channel decoding
+ Modified by F.Cadelas to simplify functionality to channel decoding
  */
 #ifndef DJI_DBUS_H_
 #define DJI_DBUS_H_

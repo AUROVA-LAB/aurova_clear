@@ -1,5 +1,4 @@
-/*
- * EKF.cpp
+/*! \file EKF.cpp
  *
  *  Created on: 8 Jun 2018
  *      Author: idelpino

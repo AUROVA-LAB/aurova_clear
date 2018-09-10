@@ -1,4 +1,5 @@
-/*! \file arduino_ros_interface
+/*! \file arduino_ros_interface.h
+ *
  *  \brief Definitions of constant values used in the arduino ros interface
  *
  * This file contains the definitions of constant values to code operational

@@ -1,4 +1,4 @@
-/*
+/*! \file DJI_DBUS.cpp
  DJI DBUS data decoder library
  (c) S. Driussi 20141215
  Not for commercial use

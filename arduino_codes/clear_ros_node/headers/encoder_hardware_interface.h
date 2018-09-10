@@ -1,5 +1,4 @@
-/*
- * encoder_hardware_interface.h
+/*! \file encoder_hardware_interface.h
  *
  *  Created on: Jan 12, 2018
  *      Author: saul

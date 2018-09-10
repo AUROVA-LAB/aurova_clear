@@ -1,5 +1,4 @@
-/*
- * pid.h
+/*! \file pid.h
  *
  *  Created on: Mar 28, 2018
  *      Author: idelpino

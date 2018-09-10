@@ -1,5 +1,4 @@
-/*
- * encoder_hardware_interface.cpp
+/*! \file encoder_hardware_interface.cpp
  *
  *  Created on: Jan 12, 2018
  *      Author: saul

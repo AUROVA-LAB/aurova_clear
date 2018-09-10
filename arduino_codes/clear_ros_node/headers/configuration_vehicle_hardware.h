@@ -1,5 +1,4 @@
-/*
- * configuration_vehicle_hardware.h
+/*! \file configuration_vehicle_hardware.h
  *
  *  Created on: Jan 28, 2018
  *      Author: saul
