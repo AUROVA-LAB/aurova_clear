@@ -28,9 +28,8 @@
 /*! Verbose levels to adjust the amount of information sent by the
  *  Arduino to avoid exceeding the communication bandwidth
  */
-#define MAX_VERBOSE_LEVEL      3
-#define MEAN_VERBOSE_LEVEL     2
-#define MIN_VERBOSE_LEVEL      1
+#define DEBUG_VERBOSE_LEVEL    2
+#define REGULAR_VERBOSE_LEVEL  1
 #define NO_VERBOSE             0
 
 //! State codes referring to the operational mode and safety state
@@ -45,6 +44,7 @@
 #define ON_BOARD_EMERGENCY_SWITCH_ACTIVATED 2
 #define RC_EMERGENCY_SWITCH_ACTIVATED       3
 #define REACTIVE_SAFETY_TOPIC_NOT_RECEIVED  4
+#define ROS_CONTROL_TOPIC_NOT_RECEIVED      5
 
 //! Warning codes
 #define NO_WARNING                                           0

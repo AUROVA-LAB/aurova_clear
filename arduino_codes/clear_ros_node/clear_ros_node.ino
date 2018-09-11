@@ -84,7 +84,7 @@ ros::NodeHandle nh; //!< The ros node implements the high level interface
 
 ////////////////////////
 // Inputs
-int verbose_level = MAX_VERBOSE_LEVEL; //!< Variable to set the amount of debugging information that is sent trough the ROS interface
+int verbose_level = REGULAR_VERBOSE_LEVEL; //!< Variable to set the amount of debugging information that is sent trough the ROS interface
 float max_recommended_forward_speed  = 0.0; //!< Variable to store the maximum forward speed recommended by the reactive systems
 float max_recommended_backward_speed = 0.0; //!< Variable to store the maximum backward speed recommended by the reactive systems
 
@@ -444,7 +444,7 @@ void receiveROSInputs(void)
 void sendOutputsToROS(void)
 {
   //! Publishing Arduino inner information to ease debug and monitoring
-  if (verbose_level == MAX_VERBOSE_LEVEL)
+  if (verbose_level == DEBUG_VERBOSE_LEVEL)
   {
     myRobot.getDesiredState(desired_ackermann_state_echo);
     required_ackermann_publisher.publish(&desired_ackermann_state_echo);
@@ -457,13 +457,14 @@ void sendOutputsToROS(void)
 
     myRobot.getLimitSwitchesPositionLR(echo_desired_limit_switches_position_LR);
     required_limit_switches_position_publisher.publish(&echo_desired_limit_switches_position_LR);
+
+    speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
   }
-  if (verbose_level >= MIN_VERBOSE_LEVEL)
+  if (verbose_level >= REGULAR_VERBOSE_LEVEL)
   {
     sendCLEARStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
     covariance_ackermann_publisher.publish(&variances_of_estimated_ackermann_state);
-    speed_volts_and_steering_pwm.publish(&speed_volts_and_steering_pwm_being_applicated);
   }
 }
 
