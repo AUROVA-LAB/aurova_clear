@@ -142,7 +142,7 @@ public:
   /*!
    * Implements the logic to change between states: Reset, RC, ROS control and Emergency Stop
    */
-  void updateFiniteStateMachine(int millisSinceLastReactiveUpdate);
+  void updateFiniteStateMachine(int millisSinceLastReactiveUpdate, int millisSinceLastROSControlUpdate);
 
   /*!
    * Use the PID controllers to calculate the voltage and PWM values to control the hardware devices

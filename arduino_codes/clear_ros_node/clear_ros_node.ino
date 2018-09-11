@@ -78,6 +78,9 @@ unsigned long int previous_time = 0; // Second time counter for communication re
 
 elapsedMillis reactive_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
 
+elapsedMillis ros_control_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the desired_ackermann_state callback is not activated
+
+
 AckermannRobot myRobot; // The class AckermannRobot implements all the algorithms needed to control the machine
 
 ros::NodeHandle nh;     // The ros node implements the high level interface
@@ -164,6 +167,7 @@ void cb_desiredAckermannState(const ackermann_msgs::AckermannDriveStamped& desir
   {
     ros_interface_warning_code = RECEIVING_ROS_CONTROLS_WHILE_NOT_BEING_IN_ROS_MODE;
   }
+  ros_control_watchdog = 0;
 }
 
 /*! \brief CallBack to store the velocity control PID gains (kp, ki, and kd) coming from the on-board PC
@@ -475,8 +479,11 @@ void sendOutputsToROS(void)
 void saturateSafetyWatchdogIfNeeded(void)
 {
   const int MARGIN_MS = 1000; // Any number greater than zero should work fine
-  if((int)reactive_watchdog > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
-    reactive_watchdog = MAX_TIME_WITHOUT_REACTIVE_MILLIS + MARGIN_MS;
+  if((int)reactive_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+    reactive_watchdog = MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS + MARGIN_MS;
+
+  if((int)ros_control_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+    ros_control_watchdog = MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS + MARGIN_MS;
 }
 
 /*!
@@ -497,7 +504,7 @@ void loop()
   myRobot.readRemoteControl(); // Decode and map the RC signals
 
   saturateSafetyWatchdogIfNeeded(); // To avoid overflow
-  myRobot.updateFiniteStateMachine((int)reactive_watchdog);
+  myRobot.updateFiniteStateMachine((int)reactive_watchdog, (int)ros_control_watchdog);
 
   myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); // It uses the reactive safety system speed limitation
 

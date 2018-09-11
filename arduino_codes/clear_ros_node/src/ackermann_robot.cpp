@@ -343,7 +343,7 @@ void AckermannRobot::readRemoteControl(void)
   }
 }
 
-void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
+void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate, int millisSinceLastROSControlUpdate)
 {
   if (operational_mode_ != last_operational_mode_) //! Every time that a mode change happens we reset the PID controllers, for a fresh new start
   {
@@ -354,10 +354,17 @@ void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate)
 
   if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE &&
       operational_mode_ != EMERGENCY_STOP &&
-      millisSinceLastReactiveUpdate > MAX_TIME_WITHOUT_REACTIVE_MILLIS)
+      millisSinceLastReactiveUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
     error_code_ = REACTIVE_SAFETY_TOPIC_NOT_RECEIVED;
+  }
+
+  if (operational_mode_ == ROS_CONTROL &&
+      millisSinceLastROSControlUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+  {
+    operational_mode_ = EMERGENCY_STOP;
+    error_code_ = ROS_CONTROL_TOPIC_NOT_RECEIVED;
   }
 
   switch (operational_mode_)
