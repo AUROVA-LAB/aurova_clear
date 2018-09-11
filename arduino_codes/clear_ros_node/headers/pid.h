@@ -10,6 +10,11 @@
 class PID;
 typedef PID* PIDPtr;
 
+/*!
+ * \class PID
+ *
+ * \brief A generic PID controller implementation
+ */
 class PID
 {
 private:
@@ -70,8 +75,17 @@ public:
    */
   void setPIDGains(float kp, float ki, float kd);
 
+  /*!
+   * Get the PID gains
+   * @param kp
+   * @param ki
+   * @param kd
+   */
   void getPIDGains(float& kp, float& ki, float& kd);
 
+  /*!
+   * Reset PID (integral part has memory!)
+   */
   void resetPID(void);
 
 };

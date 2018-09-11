@@ -24,7 +24,7 @@
 #include "nav_msgs/Odometry.h"
 #include "configuration_vehicle_hardware.h"
 
-struct State
+struct AckermannState
 {
   float steering_angle;
   float steering_angle_velocity;
@@ -38,7 +38,7 @@ struct RemoteControl
   float speed_volts;
   float steering_angle_pwm;
 
-  State desired_state;
+  AckermannState desired_state;
 };
 
 class AckermannRobot;
@@ -48,23 +48,23 @@ class AckermannRobot
 {
 private:
 
-  const unsigned int SAMPLING_TIME_SPEED_ = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0);       //ms
-  const unsigned int SAMPLING_TIME_STEERING_ = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0); //ms
-  const unsigned int TIME_TO_PREDICT_MILLIS_ = 50; //ms
+  const unsigned int SAMPLING_TIME_SPEED_MILLIS_ = (int)((1.0 / SAMPLING_HERTZ_SPEED) * 1000.0);
+  const unsigned int SAMPLING_TIME_STEERING_MILLIS_ = (int)((1.0 / SAMPLING_HERTZ_STEERING) * 1000.0);
+  const unsigned int TIME_TO_PREDICT_MILLIS_ = 50;
 
-  elapsedMillis millis_since_last_steering_reading_ = 0; //!< Timer to refresh steering information (trough the Teensy)
-  elapsedMillis millis_since_last_speed_reading_ = 0; //!< Timer to refresh speed information (trough the Teensy)
+  elapsedMillis millis_since_last_steering_reading_ = 0; // Timer to refresh steering information (trough the Teensy)
+  elapsedMillis millis_since_last_speed_reading_ = 0; // Timer to refresh speed information (trough the Teensy)
 
-  elapsedMillis zero_volts_millis_before_braking_ = 0; //!< Timer to activate the brakes after MAX_TIME_ZERO_VOLTS_TO_BRAKE
+  elapsedMillis zero_volts_millis_before_braking_ = 0; // Timer to activate the brakes after MAX_TIME_ZERO_VOLTS_TO_BRAKE
 
-  elapsedMillis millis_since_last_EKF_prediction_ = 0; //!< Timer to control the EKF prediction rate (adjusted by means of TIME_TO_PREDICT_MILLIS)
+  elapsedMillis millis_since_last_EKF_prediction_ = 0; // Timer to control the EKF prediction rate (adjusted by means of TIME_TO_PREDICT_MILLIS)
 
   float* speed_measures_;
   float* steering_measures_;
 
-  State estimated_state_;
-  State measured_state_;
-  State desired_state_;
+  AckermannState estimated_state_;
+  AckermannState measured_state_;
+  AckermannState desired_state_;
 
   bool flag_limiting_speed_by_reactive_;bool remote_control_use_PID_;
 
@@ -96,15 +96,28 @@ private:
 
   EKFPtr state_estimator_;
 
+  /*!
+   * Scale one float value given in a range [in_min, in_max] to a range between [out_min, out_max]
+   */
   float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
   {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
 
-  void saturateSetpointIfNeeded(float &speed);
+  /*!
+   * To ensure that the speed controller setpoint is in correct range
+   */
+  void saturateSpeedSetpointIfNeeded(float &speed);
 
+  /*!
+   * To reset the speed PID controller (the integral part has memory!)
+   */
   void resetSpeed(void);
 
+
+  /*!
+   * To reset the steering PID controller (the integral part has memory!)
+   */
   void resetSteering(void);
 
 public:
@@ -193,13 +206,21 @@ public:
    */
   void getSteeringPIDGains(std_msgs::Float32MultiArray& current_pid_gains);
 
+  /*!
+   * Sets the steering angular position of the limit switches, to be used during the steering calibration process
+   * @param desired_limit_switches_position
+   */
   void setLimitSwitchesPositionLR(std_msgs::Float32MultiArray& desired_limit_switches_position);
 
+  /*!
+   * Get the current steering angular position of the limit switches, to be used during the steering calibration process
+   * @param current_limit_switches_position
+   */
   void getLimitSwitchesPositionLR(std_msgs::Float32MultiArray& current_limit_switches_position);
 
   /*!
    * returns the current operational mode, that is the same that the current
-   * state of the finite state machine: Reset, RC, ROS control or Emergency Stop
+   * state of the finite state machine
    * @param current_operational_mode
    */
   void getOperationalMode(int& current_operational_mode);

@@ -12,6 +12,11 @@
 class EncoderHardwareInterface;
 typedef EncoderHardwareInterface* EncoderHardwareInterfacePtr;
 
+/*!
+ * \class EncoderHardwareInterface
+ * \bried Class to manage the communications with an external
+ * microcontroller thats is devoted to count the encoder pulses
+ */
 class EncoderHardwareInterface
 {
 private:
@@ -26,8 +31,33 @@ public:
   EncoderHardwareInterface();
   ~EncoderHardwareInterface();
 
+  /*! \brief Receive the pulses of the specified encoder
+   *
+   *
+   *  encNum = number of encoder (1 or 2)
+   *  pulses = received pulses
+   *  return value:
+   *  0 = Success, the pulses has been retrieved correctly
+   *  2 = Received NACK on transmit of address
+   *  3 = Received NACK on transmit of data
+   *  4 = Other error duting I2C communication
+   *  5 = Wrong encoder number in parameter
+   *  6 = Error requesting the data from the slave
+   *  7 = Wrong received number of bytes
+   */
   byte encoderRead(byte code, float &data);
 
+
+  /*! \brief Reset the pulses of the specified encoder to 0
+   *
+   * encNum = number of code (11 or 12)
+   * return value:
+   *   0 = Success, the pulses has been retrieved correctly
+   *   2 = Received NACK on transmit of address
+   *   3 = Received NACK on transmit of data
+   *   4 = Other error duting I2C communication
+   *   5 = Wrong encoder number in parameter
+   */
   byte encoderReset(int encNum);
 };
 

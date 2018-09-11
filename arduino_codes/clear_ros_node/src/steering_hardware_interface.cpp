@@ -1,9 +1,3 @@
-/*! \file steering_hardware_interface.cpp
- *
- *  Created on: Nov 17, 2017
- *      Author: saul
- */
-
 #include <Arduino.h>
 #include <Wire.h>
 
@@ -39,16 +33,17 @@ SteeringHardwareInterface::SteeringHardwareInterface()
   for (int i = 0; i < 2; i++)
     measures_[i] = 0;
 
-  //Initialized pins like I/O
+  // Initialized pins like I/O
   pinMode(pin_ina_, OUTPUT);
   pinMode(pin_inb_, OUTPUT);
   pinMode(pin_pwm_, OUTPUT);
   pinMode(pin_limit_switch_left_, INPUT);
   pinMode(pin_limit_switch_right_, INPUT);
 
-  //ISR
+  // ISR
   attachInterrupt(digitalPinToInterrupt(pin_int_limit_switch_), doLimitSwitch, RISING);
-  //Enable ISRs
+
+  // Enable ISRs
   interrupts();
 }
 
@@ -83,7 +78,7 @@ void SteeringHardwareInterface::steeringMotor(int desired_pwm)
     desired_pwm = 0;
   }
 
-  analogWrite(pin_pwm_, fabs(desired_pwm)); //Direction can't be negative
+  analogWrite(pin_pwm_, fabs(desired_pwm)); // Direction can't be negative
 
 }
 
@@ -94,8 +89,8 @@ void SteeringHardwareInterface::doLimitSwitch(void)
 
 float* SteeringHardwareInterface::getSteeringMeasures(void)
 {
-  steering_encoder_->encoderRead(0, measures_[0]); //pulses
-  steering_encoder_->encoderRead(1, measures_[1]); //pulses/s
+  steering_encoder_->encoderRead(0, measures_[0]); // pulses
+  steering_encoder_->encoderRead(1, measures_[1]); // pulses/s
   return measures_;
 }
 
@@ -106,13 +101,13 @@ int SteeringHardwareInterface::getSteeringError(void)
   if (error_encoder_count)
   {
     error_code += ERROR_ENCODER_COUNT;
-    error_encoder_count = false; //clean flag
+    error_encoder_count = false;
   }
 
   if (error_direction)
   {
     error_code += ERROR_DIRECTION;
-    error_direction = false; //clean flag
+    error_direction = false;
   }
 
   return error_code;

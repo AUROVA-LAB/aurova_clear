@@ -13,9 +13,9 @@
 class SpeedHardwareInterface;
 typedef SpeedHardwareInterface* SpeedHardwareInterfacePtr;
 
-/**
- * Class SpeedHardwareInterface
- * This class have the methods to control the velocity of the autonomous vehicle Blue Barrow
+/*!
+ * \class SpeedHardwareInterface
+ * \brief Class to control an speed motor
  */
 class SpeedHardwareInterface
 {
@@ -33,14 +33,17 @@ private:
 
 public:
   /*
-   * Class constructor.
-   * ch1 and ch2 are the channels of the relay to control the velocity.
+   * \brief Class constructor.
+   * \param ch1 relay output
+   * \param ch2 relay output.
    */
   SpeedHardwareInterface(int ch1, int ch2);
   ~SpeedHardwareInterface();
 
   /*
-   * The method that moves the vehicle
+   * \brief Apply the voltage to the motor
+   *
+   * \param voltage
    */
   void actuateMotor(float voltage);
 

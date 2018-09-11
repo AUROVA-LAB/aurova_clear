@@ -13,7 +13,7 @@
  *
  *  To estimate the state of the platform we use an Extended Kalman Filter.
  *  The control of the motors is performed using two separated PID controllers.
-    In addition to the ROS interface, CLEAR also implements a Remote Control
+ *  In addition to the ROS interface, CLEAR also implements a Remote Control
  *  interface that enables the user to control manually --either changing the
  *  PIDs setpoint or changing directly the voltage (speed) and pwm (steering)--
  *
@@ -291,7 +291,7 @@ ros::Publisher estimated_ackermann_publisher("estimated_ackermann_state", &estim
 /*!
  * Publisher to communicate the EKF variances of the estimated ackermann state
  */
-ros::Publisher covariance_ackermann_publisher("variances_of_estimated_ackermann_state",
+ros::Publisher variance_ackermann_publisher("variances_of_estimated_ackermann_state",
                                               &variances_of_estimated_ackermann_state);
 
 /*!
@@ -398,7 +398,7 @@ void setup()
   nh.advertise(speed_volts_and_steering_pwm);
 
   nh.advertise(estimated_ackermann_publisher);
-  nh.advertise(covariance_ackermann_publisher);
+  nh.advertise(variance_ackermann_publisher);
 
   nh.subscribe(max_recommended_forward_speed_subscriber);
   nh.subscribe(max_recommended_backward_speed_subscriber);
@@ -468,7 +468,7 @@ void sendOutputsToROS(void)
   {
     sendCLEARStatus();
     estimated_ackermann_publisher.publish(&estimated_ackermann_state);
-    covariance_ackermann_publisher.publish(&variances_of_estimated_ackermann_state);
+    variance_ackermann_publisher.publish(&variances_of_estimated_ackermann_state);
   }
 }
 
@@ -476,7 +476,7 @@ void sendOutputsToROS(void)
  * \brief We only need to know if the watchdog timer is over the MAX_TIME_WITHOUT_REACTIVE_MILLIS
  * threshold, so if it is the case we saturate the value to avoid overflow
  */
-void saturateSafetyWatchdogIfNeeded(void)
+void saturateSafetyWatchdogsIfNeeded(void)
 {
   const int MARGIN_MS = 1000; // Any number greater than zero should work fine
   if((int)reactive_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
@@ -503,7 +503,7 @@ void loop()
 
   myRobot.readRemoteControl(); // Decode and map the RC signals
 
-  saturateSafetyWatchdogIfNeeded(); // To avoid overflow
+  saturateSafetyWatchdogsIfNeeded(); // To avoid overflow
   myRobot.updateFiniteStateMachine((int)reactive_watchdog, (int)ros_control_watchdog);
 
   myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); // It uses the reactive safety system speed limitation

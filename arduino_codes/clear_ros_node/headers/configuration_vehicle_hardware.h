@@ -1,5 +1,7 @@
 /*! \file configuration_vehicle_hardware.h
  *
+ *  \brief Definitions of constants related to the robot, the controllers and estimators
+ *
  *  Created on: Jan 28, 2018
  *      Author: saul
  */
@@ -21,11 +23,11 @@ const float WIDTH_CENTER_WHEELS_METERS = 0.62;
 const float REAR_WHEEL_DIAM_METERS = 0.395 * 0.92; // Manufacturer 0.406
 const float FRONT_WHEEL_DIAM_METERS = 0.310; // Manufacturer 0.305
 
-//! Actuators standard values, used for homing during reset state
+// Actuators standard values, used for homing during reset state
 #define SPEED_ZERO                     0.0
 #define STEERING_CENTERED              0.0
 
-//! Sampling time encoders using I2C
+// Sampling time encoders using I2C
 const float SAMPLING_HERTZ_SPEED = 10; //2.0; //Hz
 const float SENSOR_HALL_BASE_NOISE_PER_HERTZ = 0.052 * 2.0;
 

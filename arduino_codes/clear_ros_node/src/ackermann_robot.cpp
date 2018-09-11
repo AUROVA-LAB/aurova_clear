@@ -1,9 +1,3 @@
-/*! |file vehicle.cpp
- *
- *  Created on: 3 Nov 2017
- *      Author: idelpino
- */
-
 #include <ackermann_robot.h>
 #include <elapsedMillis.h>
 #include "arduino_ros_interface.h"
@@ -98,27 +92,27 @@ AckermannRobot::AckermannRobot()
   pinMode(LED_B, OUTPUT);
 
   pinMode(HORN, OUTPUT);
-  digitalWrite(HORN, HIGH); //! Horn in silence
+  digitalWrite(HORN, HIGH); // Horn in silence
 
   pinMode(ENABLE_MOTORS, OUTPUT);
-  digitalWrite(ENABLE_MOTORS, HIGH); //! Motors disabled
+  digitalWrite(ENABLE_MOTORS, HIGH); // Motors disabled
 
   pinMode(BRAKE, OUTPUT);
-  digitalWrite(BRAKE, HIGH); //! Brakes activated
+  digitalWrite(BRAKE, HIGH); // Brakes activated
 
-  //desynchronising sampling times for I2C
-  if (SAMPLING_TIME_SPEED_ > SAMPLING_TIME_STEERING_)
+  // Desynchronising sampling times for I2C
+  if (SAMPLING_TIME_SPEED_MILLIS_ > SAMPLING_TIME_STEERING_MILLIS_)
   {
-    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_ * (float)(fabs(SAMPLING_TIME_STEERING_ - SAMPLING_TIME_SPEED_))
-        / SAMPLING_TIME_SPEED_;
+    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_MILLIS_ * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_))
+        / SAMPLING_TIME_SPEED_MILLIS_;
   }
-  else if (SAMPLING_TIME_STEERING_ > SAMPLING_TIME_SPEED_)
+  else if (SAMPLING_TIME_STEERING_MILLIS_ > SAMPLING_TIME_SPEED_MILLIS_)
   {
-    millis_since_last_speed_reading_ = SAMPLING_TIME_SPEED_ * (float)(fabs(SAMPLING_TIME_STEERING_ - SAMPLING_TIME_SPEED_))
-        / SAMPLING_TIME_STEERING_;
+    millis_since_last_speed_reading_ = SAMPLING_TIME_SPEED_MILLIS_ * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_))
+        / SAMPLING_TIME_STEERING_MILLIS_;
   }
   else
-    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_ / 2.0;
+    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_MILLIS_ / 2.0;
 
 }
 
@@ -130,7 +124,7 @@ AckermannRobot::~AckermannRobot()
 //////////////////////////
 // Private interface
 //////////////////////////
-void AckermannRobot::saturateSetpointIfNeeded(float &speed)
+void AckermannRobot::saturateSpeedSetpointIfNeeded(float &speed)
 {
   if (speed > ABS_MAX_SPEED_METERS_SECOND)
     speed = ABS_MAX_SPEED_METERS_SECOND;
@@ -158,7 +152,7 @@ void AckermannRobot::updateROSDesiredState(const ackermann_msgs::AckermannDriveS
   desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
 
   desired_state_.speed = desired_ackermann_state.drive.speed;
-  saturateSetpointIfNeeded(desired_state_.speed);
+  saturateSpeedSetpointIfNeeded(desired_state_.speed);
 
   desired_state_.acceleration = desired_ackermann_state.drive.acceleration;
   desired_state_.jerk = desired_ackermann_state.drive.jerk;
@@ -170,40 +164,40 @@ void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimate
 {
   if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
   {
-    state_estimator_->predict(speed_volts_); //!< Make EKF prediction step
-    millis_since_last_EKF_prediction_ = 0; //!< Reset the counter
+    state_estimator_->predict(speed_volts_); // Make EKF prediction step
+    millis_since_last_EKF_prediction_ = 0;   // Reset the counter
   }
 
-  if (millis_since_last_steering_reading_ >= SAMPLING_TIME_STEERING_)
+  if (millis_since_last_steering_reading_ >= SAMPLING_TIME_STEERING_MILLIS_)
   {
-    steering_measures_ = steering_actuator_->getSteeringMeasures(); //!< Read the steering encoder pulses
+    steering_measures_ = steering_actuator_->getSteeringMeasures(); // Read the steering encoder pulses
 
-    measured_state_.steering_angle_velocity = steering_measures_[1] * PULSES_TO_DEG; //!< Pass to degrees
+    measured_state_.steering_angle_velocity = steering_measures_[1] * PULSES_TO_DEG; // Pass to degrees
     measured_state_.steering_angle = steering_measures_[0] * PULSES_TO_DEG;
-    millis_since_last_steering_reading_ = 0; //!< Reset the counter
+    millis_since_last_steering_reading_ = 0; // Reset the counter
 
-    state_estimator_->correctEnc(measured_state_.steering_angle); //!< Make EKF correction using the incremental steering observation
+    state_estimator_->correctEnc(measured_state_.steering_angle); // Make EKF correction using the incremental steering observation
   }
 
-  if (millis_since_last_speed_reading_ >= SAMPLING_TIME_SPEED_)
+  if (millis_since_last_speed_reading_ >= SAMPLING_TIME_SPEED_MILLIS_)
   {
-    speed_measures_ = speed_actuator_->getSpeedMeasures(); //!< Read the speed encoder pulses
-    millis_since_last_speed_reading_ = 0; //!< Reset the counter
+    speed_measures_ = speed_actuator_->getSpeedMeasures(); // Read the speed encoder pulses
+    millis_since_last_speed_reading_ = 0; // Reset the counter
 
     float direction = 1.0;
     if (!speed_actuator_->getFlagForward())
       direction = -1.0;
 
-    float speed_left_rear_wheel = speed_measures_[0] * METERS_PER_PULSE * direction; //!< Pass to meters per second
+    float speed_left_rear_wheel = speed_measures_[0] * METERS_PER_PULSE * direction; // Pass to meters per second
 
-    measured_state_.speed = speed_left_rear_wheel; //!< The encoder is attached to the left rear wheel
+    measured_state_.speed = speed_left_rear_wheel; // The encoder is attached to the left rear wheel
     measured_state_.acceleration = speed_measures_[1] * METERS_PER_PULSE;
     measured_state_.jerk = speed_measures_[2] * METERS_PER_PULSE;
 
-    state_estimator_->correctHall(speed_left_rear_wheel); //!< Make EKF correction using speed observation
+    state_estimator_->correctHall(speed_left_rear_wheel); // Make EKF correction using speed observation
   }
 
-  if (steering_actuator_->readLimitSwitches()) //!< If any steering limit switch is reached
+  if (steering_actuator_->readLimitSwitches()) // If any steering limit switch is reached
   {
     float observed_theta = 0.0;
     if (estimated_state_.steering_angle > 0.0)
@@ -214,11 +208,11 @@ void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimate
     {
       observed_theta = -1 * right_steering_limit_switch_position_;
     }
-    state_estimator_->correctLs(observed_theta); //!< Make EKF correction using absolute steering observation
+    state_estimator_->correctLs(observed_theta); // Make EKF correction using absolute steering observation
   }
-  /*! EKF state consists in calibration error (or steering in k=0),
+  /* EKF state consists in calibration error (or steering in k=0),
    * accumulated steering angle (integrating the incremental encoder) and speed
-   * */
+   */
   float steering_calibration_error = 0.0;
   float steering_cummulated_increment = 0.0;
   state_estimator_->getState(steering_calibration_error, steering_cummulated_increment, estimated_state_.speed);
@@ -260,9 +254,9 @@ void AckermannRobot::readOnBoardUserInterface(void)
 
 void AckermannRobot::readRemoteControl(void)
 {
-  dBus_->FeedLine(); //! Makes a memcopy of the RC buffer content
+  dBus_->FeedLine(); // Makes a memcopy of the RC buffer content
 
-  dBus_->UpdateSignalState(); //! Check if the Remote Controller is alive
+  dBus_->UpdateSignalState(); // Check if the Remote Controller is alive
   if (dBus_->failsafe_status != DBUS_SIGNAL_OK)
   {
     operational_mode_ = EMERGENCY_STOP;
@@ -270,10 +264,10 @@ void AckermannRobot::readRemoteControl(void)
   }
   else
   {
-    if (dBus_->toChannels == RC_NEW_DATA_AVAILABLE) //! If there are new data to read
+    if (dBus_->toChannels == RC_NEW_DATA_AVAILABLE) // If there are new data to read
     {
-      dBus_->UpdateChannels(); //! Load the new data
-      dBus_->toChannels = RC_NEW_DATA_READED; //! Reset the flag to indicate "ready to receive new data"
+      dBus_->UpdateChannels(); // Load the new data
+      dBus_->toChannels = RC_NEW_DATA_READED; // Reset the flag to indicate "ready to receive new data"
 
 
       // We map the RC control rod positions to volts, pwm, meters per second and steering degrees, depending on the flag use_PID_
@@ -296,7 +290,7 @@ void AckermannRobot::readRemoteControl(void)
                                                               RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
                                                               ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
       // Operational mode switching
-      if (operational_mode_ != EMERGENCY_STOP) //! During normal operation we switch between modes just reading the RC switches
+      if (operational_mode_ != EMERGENCY_STOP) // During normal operation we switch between modes just reading the RC switches
       {
         if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_EMERGENCY)
         {
@@ -309,14 +303,14 @@ void AckermannRobot::readRemoteControl(void)
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
         else
           operational_mode_ = REMOTE_CONTROL;
-      }else{ //! To exit from emergency mode we need to check four conditions
+      }else{ // To exit from emergency mode we need to check four conditions
         if (operational_mode_ == EMERGENCY_STOP and
             dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED and
             dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_NO_EMERGENCY and
             dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM and
             digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
-          operational_mode_ = REMOTE_CONTROL_NOT_SAFE; //! We always go to full manual when exiting from emergency
+          operational_mode_ = REMOTE_CONTROL_NOT_SAFE; // We always go to full manual when exiting from emergency
           error_code_ = NO_ERROR;
         }
       }
@@ -345,7 +339,7 @@ void AckermannRobot::readRemoteControl(void)
 
 void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate, int millisSinceLastROSControlUpdate)
 {
-  if (operational_mode_ != last_operational_mode_) //! Every time that a mode change happens we reset the PID controllers, for a fresh new start
+  if (operational_mode_ != last_operational_mode_) // Every time that a mode change happens we reset the PID controllers, for a fresh new start
   {
     resetSpeed();
     resetSteering();
@@ -426,7 +420,7 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed
     flag_limiting_speed_by_reactive_ = true;
     warning_code_ = LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER;
   }
-  saturateSetpointIfNeeded(desired_state_.speed);
+  saturateSpeedSetpointIfNeeded(desired_state_.speed);
   if (fabs(desired_state_.speed) <= MIN_SETPOINT_TO_USE_PID)
   {
     desired_state_.speed = 0.0;
@@ -445,14 +439,14 @@ void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volt
 {
   if (operational_mode_ == EMERGENCY_STOP)
   {
-    digitalWrite(ENABLE_MOTORS, HIGH); //! Disable motors
-    digitalWrite(BRAKE, HIGH); //! Activate brakes
-    speed_volts_ = 0; //! Just in case
-    steering_angle_pwm_ = 0; //! Just in case
+    digitalWrite(ENABLE_MOTORS, HIGH); // Disable motors
+    digitalWrite(BRAKE, HIGH); // Activate brakes
+    speed_volts_ = 0; // Just in case
+    steering_angle_pwm_ = 0; // Just in case
   }
   else
   {
-    digitalWrite(ENABLE_MOTORS, LOW); //! Enable motors
+    digitalWrite(ENABLE_MOTORS, LOW); // Enable motors
 
     if (operational_mode_ == REMOTE_CONTROL_NOT_SAFE && !remote_control_use_PID_)
     {
@@ -467,7 +461,7 @@ void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volt
 
     if (fabs(speed_volts_) > MIN_VOLTS_TO_RELEASE_BRAKE)
     {
-      digitalWrite(BRAKE, LOW); //! Release brakes
+      digitalWrite(BRAKE, LOW); // Release brakes
       zero_volts_millis_before_braking_ = 0;
     }
   }
@@ -477,7 +471,7 @@ void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volt
     digitalWrite(BRAKE, HIGH);
   }
 
-  //! Actuating motors!
+  // Actuating motors!
   speed_actuator_->actuateMotor(speed_volts_);
   steering_actuator_->steeringMotor(steering_angle_pwm_);
 

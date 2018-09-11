@@ -1,5 +1,7 @@
 /*! \file hardware_description_constants.h
  *
+ * \brief Arduino pin mapping
+ *
  *  Created on: 7 Nov 2017
  *      Author: idelpino
  */

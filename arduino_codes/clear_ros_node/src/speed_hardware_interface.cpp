@@ -1,8 +1,3 @@
-/*! \file speed_hardware_interface.cpp
- *
- *  Created on: 6 Nov 2017
- *      Author: idelpino
- */
 #include <Wire.h>
 #include "speed_hardware_interface.h"
 #include "hardware_description_constants.h"
@@ -41,18 +36,16 @@ SpeedHardwareInterface::~SpeedHardwareInterface()
 
 void SpeedHardwareInterface::actuateMotor(float voltage)
 {
-  /*!
-   * The maximun voltage that the vehicle suports to move is |5|V
-   */
+  // The maximun voltage that the vehicle suports to move is |5|V
   if (voltage < -ABS_MAX_SPEED_VOLTS)
     voltage = -ABS_MAX_SPEED_VOLTS;
   else if (voltage > ABS_MAX_SPEED_VOLTS)
     voltage = ABS_MAX_SPEED_VOLTS;
 
-  /*!
-   * Transform the voltage in a digital number with the resolution of the dac (12 bits)
-   */
-  //Move FORWARD
+
+  // Transform the voltage in a digital number with the resolution of the dac (12 bits)
+
+  // Move FORWARD
   if (voltage > 0)
   {
     flag_forward_ = true;
@@ -66,7 +59,8 @@ void SpeedHardwareInterface::actuateMotor(float voltage)
     digitalWrite(this->ch1_, LOW);
     digitalWrite(this->ch2_, HIGH);
   }
-  //Move BACKWARD
+
+  // Move BACKWARD
   else if (voltage < 0)
   {
     flag_forward_ = false;

@@ -1,9 +1,3 @@
-/*! \file pid.cpp
- *
- *  Created on: Mar 28, 2018
- *      Author: idelpino
- */
-
 #include "pid.h"
 #include "arduino_ros_interface.h"
 #include "Arduino.h"

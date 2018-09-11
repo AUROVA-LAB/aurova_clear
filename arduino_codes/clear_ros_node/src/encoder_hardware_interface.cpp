@@ -1,9 +1,3 @@
-/*! \file encoder_hardware_interface.cpp
- *
- *  Created on: Jan 12, 2018
- *      Author: saul
- */
-
 #include <Arduino.h>
 #include <Wire.h>
 
@@ -20,20 +14,6 @@ EncoderHardwareInterface::~EncoderHardwareInterface()
 {
 }
 
-/*! \brief Receive the pulses of the specified encoder
- *
- *
- *  encNum = number of encoder (1 or 2)
- *  pulses = received pulses
- *  return value:
- *  0 = Success, the pulses has been retrieved correctly
- *  2 = Received NACK on transmit of address
- *  3 = Received NACK on transmit of data
- *  4 = Other error duting I2C communication
- *  5 = Wrong encoder number in parameter
- *  6 = Error requesting the data from the slave
- *  7 = Wrong received number of bytes
- */
 byte EncoderHardwareInterface::encoderRead(byte code, float &data)
 {
   // Pointer to the buffer for receiving
@@ -69,16 +49,6 @@ byte EncoderHardwareInterface::encoderRead(byte code, float &data)
   return 0; // Success
 }
 
-/*! \brief Reset the pulses of the specified encoder to 0
- *
- * encNum = number of code (11 or 12)
- * return value:
- *   0 = Success, the pulses has been retrieved correctly
- *   2 = Received NACK on transmit of address
- *   3 = Received NACK on transmit of data
- *   4 = Other error duting I2C communication
- *   5 = Wrong encoder number in parameter
- */
 byte EncoderHardwareInterface::encoderReset(int encNum)
 {
   byte retCode; // Return code

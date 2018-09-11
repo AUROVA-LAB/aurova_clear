@@ -12,9 +12,9 @@
 class SteeringHardwareInterface;
 typedef SteeringHardwareInterface* SteeringHardwareInterfacePtr;
 
-/**
- * Class SteeringHardwareInterface
- * This class have the methods to control the direction of the autonomous vehicle Blue Barrow
+/*!
+ * \class SteeringHardwareInterface
+ * \brief Class for steering control
  */
 class SteeringHardwareInterface
 {
@@ -36,8 +36,8 @@ public:
   ~SteeringHardwareInterface();
 
   /*!
-   * Moves the vehicle steering
-   * @param desired_pwm is a PWM value with sign
+   * \brief Moves the vehicle steering
+   * \param desired_pwm is a PWM value with sign
    * 0 < desired_pwm < 256: moves RIGHT,
    * -256 < desired_pwm < 0: moves LEFT,
    * other case: stop motor
@@ -45,19 +45,20 @@ public:
   void steeringMotor(int desired_pwm);
 
   /*!
-   * ISR that update the steering limits reading the sensors
+   * \brief ISR that update the steering limits reading the sensors
    * Any limit switch sensor call this interruption
    */
   static void doLimitSwitch(void);
 
   /*!
-   * Convert the encoder_count in radians
-   * using the hardware_descriptions_constants.h, the motor reduction and the pulses per revolution
+   * \brief Convert the encoder_count in radians
+   * using the hardware_descriptions_constants.h,
+   * the motor reduction and the pulses per revolution
    */
   float* getSteeringMeasures(void);
 
   /*!
-   * Verify some important variables and report if there are some error
+   * \brief Verify some important variables and report if there are some error
    * Return the binary error code
    */
   int getSteeringError(void);

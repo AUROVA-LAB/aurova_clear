@@ -1,9 +1,3 @@
-/*! \file EKF.cpp
- *
- *  Created on: 8 Jun 2018
- *      Author: idelpino
- */
-
 #include "EKF.h"
 #include "configuration_vehicle_hardware.h"
 
