@@ -72,38 +72,38 @@
 
 ////////////////////////
 // General
-bool communicate_with_ROS = false;   //!< Flag set in COMMUNICATION_REFRESH_TIME_IN_MILLIS periods to refresh the ROS interface
-unsigned long int current_time  = 0; //!< Time counter to set the communication refresh flag properly
-unsigned long int previous_time = 0; //!< Second time counter for communication refresh (we need to counters to calculate time increments)
+bool communicate_with_ROS = false;   // Flag set in COMMUNICATION_REFRESH_TIME_IN_MILLIS periods to refresh the ROS interface
+unsigned long int current_time  = 0; // Time counter to set the communication refresh flag properly
+unsigned long int previous_time = 0; // Second time counter for communication refresh (we need to counters to calculate time increments)
 
-elapsedMillis reactive_watchdog = 0; //!< Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
+elapsedMillis reactive_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
 
-AckermannRobot myRobot; //!< The class AckermannRobot implements all the algorithms needed to control the machine
+AckermannRobot myRobot; // The class AckermannRobot implements all the algorithms needed to control the machine
 
-ros::NodeHandle nh; //!< The ros node implements the high level interface
+ros::NodeHandle nh;     // The ros node implements the high level interface
 
 ////////////////////////
 // Inputs
-int verbose_level = REGULAR_VERBOSE_LEVEL; //!< Variable to set the amount of debugging information that is sent trough the ROS interface
-float max_recommended_forward_speed  = 0.0; //!< Variable to store the maximum forward speed recommended by the reactive systems
-float max_recommended_backward_speed = 0.0; //!< Variable to store the maximum backward speed recommended by the reactive systems
+int verbose_level = REGULAR_VERBOSE_LEVEL;  // Variable to set the amount of debugging information that is sent trough the ROS interface
+float max_recommended_forward_speed  = 0.0; // Variable to store the maximum forward speed recommended by the reactive systems
+float max_recommended_backward_speed = 0.0; // Variable to store the maximum backward speed recommended by the reactive systems
 
 // Messages to store input topics data, there is no need of initialising them
 // because they are only used after the callback executions.
-ackermann_msgs::AckermannDriveStamped desired_ackermann_state; //!< Message to store the setpoints for the PID controllers
-std_msgs::Float32MultiArray desired_speed_pid_gains; //!< Message to store the kp, ki, kd gains of the speed PID controller
-std_msgs::Float32MultiArray desired_steering_pid_gains; //!< Message to store the kp, ki, kd gains of the steering PID controller
-std_msgs::Float32MultiArray desired_limit_switches_position_LR; //!< Message to store the values of both LS angular position, useful during calibration
+ackermann_msgs::AckermannDriveStamped desired_ackermann_state;  // Message to store the setpoints for the PID controllers
+std_msgs::Float32MultiArray desired_speed_pid_gains;            // Message to store the kp, ki, kd gains of the speed PID controller
+std_msgs::Float32MultiArray desired_steering_pid_gains;         // Message to store the kp, ki, kd gains of the steering PID controller
+std_msgs::Float32MultiArray desired_limit_switches_position_LR; // Message to store the values of both LS angular position, useful during calibration
 
 
 ///////////////////////
 // Outputs
-int ros_interface_warning_code = NO_WARNING; //!< Variable sent in the robot_status message
+int ros_interface_warning_code = NO_WARNING; // Variable sent in the robot_status message
 
-ackermann_msgs::AckermannDriveStamped estimated_ackermann_state; //!< mean values of EKF estimated state: steering angle (deg) and speed (m/s)
-ackermann_msgs::AckermannDriveStamped variances_of_estimated_ackermann_state; //!< variances of EKF estimated values
-std_msgs::Float32MultiArray speed_volts_and_steering_pwm_being_applicated; //!< current outputs of both PID controllers
-std_msgs::Float32MultiArray CLEAR_status; //!< message with five values, indicating operational mode, error code (only non zero in emergency mode), two warning codes and verbose level
+ackermann_msgs::AckermannDriveStamped estimated_ackermann_state; // mean values of EKF estimated state: steering angle (deg) and speed (m/s)
+ackermann_msgs::AckermannDriveStamped variances_of_estimated_ackermann_state; // variances of EKF estimated values
+std_msgs::Float32MultiArray speed_volts_and_steering_pwm_being_applicated; // current outputs of both PID controllers
+std_msgs::Float32MultiArray CLEAR_status; // message with five values, indicating operational mode, error code (only non zero in emergency mode), two warning codes and verbose level
 
 // Echoes to check communications
 ackermann_msgs::AckermannDriveStamped desired_ackermann_state_echo;
@@ -358,8 +358,8 @@ void setup()
 {
   Serial.begin(57600);
 
-  wdt_disable();           //!< watchdog timer configuration
-  wdt_enable(WDTO_500MS);  //!< it is set to automatically reboot the arduino in case of main loop hanging
+  wdt_disable();           // watchdog timer configuration
+  wdt_enable(WDTO_500MS);  // it is set to automatically reboot the arduino in case of main loop hanging
 
   Wire.begin();
   Wire.setClock(100000); //100Kbps
@@ -373,7 +373,7 @@ void setup()
 
   reserveDynamicMemory();
 
-  //! Initialise ROS node and interface
+  // Initialise ROS node and interface
   nh.initNode();
 
   nh.subscribe(verbose_level_subscriber);
@@ -427,10 +427,10 @@ bool checkIfItsTimeToInterfaceWithROS(void)
  */
 void receiveROSInputs(void)
 {
-  //! Attending callbacks
+  // Attending callbacks
   nh.spinOnce();
 
-  //! passing ROS inputs to the vehicle
+  // passing ROS inputs to the vehicle
   if (myRobot.getOperationalMode() == ROS_CONTROL)
   {
     myRobot.updateROSDesiredState(desired_ackermann_state);
@@ -443,7 +443,7 @@ void receiveROSInputs(void)
  */
 void sendOutputsToROS(void)
 {
-  //! Publishing Arduino inner information to ease debug and monitoring
+  // Publishing Arduino inner information to ease debug and monitoring
   if (verbose_level == DEBUG_VERBOSE_LEVEL)
   {
     myRobot.getDesiredState(desired_ackermann_state_echo);
@@ -484,24 +484,24 @@ void saturateSafetyWatchdogIfNeeded(void)
  */
 void loop()
 {
-  wdt_reset(); //!< each new loop we reset the hanging watchdog timer
+  wdt_reset(); // each new loop we reset the hanging watchdog timer
 
-  communicate_with_ROS = checkIfItsTimeToInterfaceWithROS(); //!< Flag to control the ROS reading and publishing rate
+  communicate_with_ROS = checkIfItsTimeToInterfaceWithROS(); // Flag to control the ROS reading and publishing rate
 
-  if (communicate_with_ROS) receiveROSInputs(); //!< Attending callbacks
+  if (communicate_with_ROS) receiveROSInputs(); // Attending callbacks
 
-  myRobot.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state); //!< EKF iteration
+  myRobot.updateState(estimated_ackermann_state, variances_of_estimated_ackermann_state); // EKF iteration
 
-  myRobot.readOnBoardUserInterface(); //!< Read the controls available on-board (currently only the emergency switch)
+  myRobot.readOnBoardUserInterface(); // Read the controls available on-board (currently only the emergency switch)
 
-  myRobot.readRemoteControl(); //!< Decode and map the RC signals
+  myRobot.readRemoteControl(); // Decode and map the RC signals
 
-  saturateSafetyWatchdogIfNeeded(); //!< To avoid overflow
+  saturateSafetyWatchdogIfNeeded(); // To avoid overflow
   myRobot.updateFiniteStateMachine((int)reactive_watchdog);
 
-  myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); //!< It uses the reactive safety system speed limitation
+  myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); // It uses the reactive safety system speed limitation
 
-  myRobot.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); //!< Here we actuate the motors
+  myRobot.writeCommandOutputs(speed_volts_and_steering_pwm_being_applicated); // Here we actuate the motors
 
-  if (communicate_with_ROS) sendOutputsToROS(); //!< publishing the ROS interface topics
+  if (communicate_with_ROS) sendOutputsToROS(); // publishing the ROS interface topics
 }
