@@ -42,16 +42,6 @@
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.20/variants/mega</locationURI>
 		</link>
 		<link>
-			<name>libraries/EigenArduino-Eigen30</name>
-			<type>2</type>
-			<location>/home/idelpino/Arduino/libraries/EigenArduino-Eigen30</location>
-		</link>
-		<link>
-			<name>libraries/Ethernet</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/Ethernet/1.1.2</locationURI>
-		</link>
-		<link>
 			<name>libraries/SPI</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.20/libraries/SPI</locationURI>
@@ -60,16 +50,6 @@
 			<name>libraries/Wire</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.20/libraries/Wire</locationURI>
-		</link>
-		<link>
-			<name>libraries/elapsedMillis</name>
-			<type>2</type>
-			<location>/home/idelpino/Arduino/libraries/elapsedMillis</location>
-		</link>
-		<link>
-			<name>libraries/ros_lib</name>
-			<type>2</type>
-			<location>/home/idelpino/Arduino/libraries/ros_lib</location>
 		</link>
 	</linkedResources>
 </projectDescription>

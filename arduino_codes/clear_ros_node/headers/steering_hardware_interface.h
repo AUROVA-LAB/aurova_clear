@@ -1,5 +1,4 @@
-/*
- * steering_hardware_interface.h
+/*! \file steering_hardware_interface.h
  *
  *  Created on: Nov 17, 2017
  *      Author: saul
@@ -8,17 +7,14 @@
 #ifndef HEADERS_STEERING_HARDWARE_INTERFACE_H_
 #define HEADERS_STEERING_HARDWARE_INTERFACE_H_
 
-
 #include "encoder_hardware_interface.h"
 
-
 class SteeringHardwareInterface;
-typedef  SteeringHardwareInterface* SteeringHardwareInterfacePtr;
+typedef SteeringHardwareInterface* SteeringHardwareInterfacePtr;
 
-
-/**
- * Class SteeringHardwareInterface
- * This class have the methods to control the direction of the autonomous vehicle Blue Barrow
+/*!
+ * \class SteeringHardwareInterface
+ * \brief Class for steering control
  */
 class SteeringHardwareInterface
 {
@@ -33,50 +29,63 @@ private:
 
   float measures_[2]; // pulses, vel
 
+  int warning_code_;
+
 public:
 
   EncoderHardwareInterfacePtr steering_encoder_;
-	SteeringHardwareInterface();
-     ~SteeringHardwareInterface();
+  SteeringHardwareInterface();
+  ~SteeringHardwareInterface();
 
+  /*!
+   * \brief Moves the vehicle steering
+   *
+   * It checks the limit switches pins to allow
+   * or deny the movement.
+   *
+   * \param desired_pwm is a PWM value with sign
+   * 0 < desired_pwm < 256: moves RIGHT,
+   * -256 < desired_pwm < 0: moves LEFT,
+   * other case: stop motor
+   */
+  void steeringMotor(int desired_pwm);
 
-    /*!
-     * Moves the vehicle steering
-     * @param direction is a PWM value
-     * 0 < dir < 256: moves RIGHT, with direction speed
-     * -256 < dir < 0: moves LEFT, with Abs(direction) speed
-     * other case: stop motor
-     */
-    void steeringMotor(int direction);
+  /*!
+   * \brief ISR that activates a flag that indicates
+   * that any of the two limit switches has been reached
+   * It is only used to fire an EKF observation, not to
+   * stop the motors if reached.
+   */
+  static void activateLimitSwitchFlag(void);
 
-    /*!
-     * Calibrate the vehicle steering using the limit switch and the encoder
-     */
-    bool steeringCalibration(void);
+  /*!
+   * \brief Convert the encoder_count in radians
+   * using the hardware_descriptions_constants.h,
+   * the motor reduction and the pulses per revolution
+   */
+  float* getSteeringMeasures(void);
 
-    /*!
-     * ISR that update the steering limits reading the sensors
-     * Any limit switch sensor call this interruption
-     */
-    static void doLimitSwitch(void);
+  /*!
+   * \brief Verify some important variables and report if there are some error
+   * Return the binary error code
+   *
+   * TODO: Integrate this warnings in the ROS interface
+   */
+  int getSteeringWarningCode(void);
 
-    /*!
-     * Convert the encoder_count in radians
-     * using the hardware_descriptions_constants.h, the motor reduction and the pulses per revolution
-     */
-    float* getSteeringMeasures(void);
-
-    /*!
-     * Verify some important variables and report if there are some error
-     * Return the binary error code
-     */
-    int getSteeringError(void);
-
-    int readLimitSwitches(void);
+  /*!
+   * \brief This read the limit switch flag state
+   * and resets the flag. This makes that only one
+   * EKF correction step is applied when a limit
+   * switch is reached. TIP: In case of problematic
+   * EKF corrections using limit switches, one way to
+   * improve the performance could be to launch the EKF
+   * correction step within the interruption, so this
+   * functions would be placed in the ackermann_robot
+   * class.
+   */
+  int readAndResetLimitSwitchFlag(void);
 
 };
-
-
-
 
 #endif /* HEADERS_STEERING_HARDWARE_INTERFACE_H_ */

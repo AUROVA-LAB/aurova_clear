@@ -1,5 +1,4 @@
-/*
- * speed_hardware_interface.h
+/*! \file speed_hardware_interface.h
  *
  *  Created on: 6 Nov 2017
  *      Author: idelpino
@@ -12,11 +11,11 @@
 #include "encoder_hardware_interface.h"
 
 class SpeedHardwareInterface;
-typedef  SpeedHardwareInterface* SpeedHardwareInterfacePtr;
+typedef SpeedHardwareInterface* SpeedHardwareInterfacePtr;
 
-/**
- * Class SpeedHardwareInterface
- * This class have the methods to control the velocity of the autonomous vehicle Blue Barrow
+/*!
+ * \class SpeedHardwareInterface
+ * \brief Class to control an speed motor
  */
 class SpeedHardwareInterface
 {
@@ -34,22 +33,22 @@ private:
 
 public:
   /*
-   * Class constructor.
-   * ch1 and ch2 are the channels of the relay to control the velocity.
+   * \brief Class constructor.
+   * \param ch1 relay output
+   * \param ch2 relay output.
    */
   SpeedHardwareInterface(int ch1, int ch2);
-    ~SpeedHardwareInterface();
+  ~SpeedHardwareInterface();
 
-    /*
-     * The method that moves the vehicle
-     */
-   void actuateMotor(float voltage);
+  /*
+   * \brief Apply the voltage to the motor
+   *
+   * \param voltage
+   */
+  void actuateMotor(float voltage);
 
-   float* getSpeedMeasures(void);
-   bool getFlagForward(void);
+  float* getSpeedMeasures(void);bool getFlagForward(void);
 
 };
-
-
 
 #endif /* HEADERS_SPEED_HARDWARE_INTERFACE_H_ */

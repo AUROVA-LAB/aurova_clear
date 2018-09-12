@@ -1,5 +1,4 @@
-/*
- * pid.h
+/*! \file pid.h
  *
  *  Created on: Mar 28, 2018
  *      Author: idelpino
@@ -11,6 +10,11 @@
 class PID;
 typedef PID* PIDPtr;
 
+/*!
+ * \class PID
+ *
+ * \brief A generic PID controller implementation
+ */
 class PID
 {
 private:
@@ -29,7 +33,6 @@ private:
   float integral_;
   float derivative_;
 
-
   float error_;
   float previous_error_;
 
@@ -38,8 +41,7 @@ private:
 
   float max_, min_;
   float tolerance_threshold_to_output_zero_; //if the absolute value of the output is below
-                                            //this threshold, the output is set to zero
-
+                                             //this threshold, the output is set to zero
 
   float* input_;
   float* output_;
@@ -73,12 +75,19 @@ public:
    */
   void setPIDGains(float kp, float ki, float kd);
 
+  /*!
+   * Get the PID gains
+   * @param kp
+   * @param ki
+   * @param kd
+   */
   void getPIDGains(float& kp, float& ki, float& kd);
 
+  /*!
+   * Reset PID (integral part has memory!)
+   */
   void resetPID(void);
 
 };
-
-
 
 #endif /* HEADERS_PID_H_ */
