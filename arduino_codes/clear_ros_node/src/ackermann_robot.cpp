@@ -7,7 +7,7 @@
 
 AckermannRobot::AckermannRobot()
 {
-  operational_mode_                        = REMOTE_CONTROL_NOT_SAFE;
+  operational_mode_                        = EMERGENCY_STOP;
   last_operational_mode_                   = operational_mode_;
 
   estimated_state_.steering_angle          = 0.0;  // deg

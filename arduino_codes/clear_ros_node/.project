@@ -51,25 +51,5 @@
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.20/libraries/Wire</locationURI>
 		</link>
-                <link>
-			<name>core/core</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.21/cores/arduino</locationURI>
-		</link>
-		<link>
-			<name>core/variant</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.21/variants/mega</locationURI>
-		</link>
-		<link>
-			<name>libraries/SPI</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.21/libraries/SPI</locationURI>
-		</link>
-		<link>
-			<name>libraries/Wire</name>
-			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.6.21/libraries/Wire</locationURI>
-		</link>
 	</linkedResources>
 </projectDescription>
