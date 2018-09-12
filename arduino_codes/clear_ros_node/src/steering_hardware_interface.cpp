@@ -4,18 +4,8 @@
 #include "hardware_description_constants.h"
 #include "steering_hardware_interface.h"
 #include "configuration_vehicle_hardware.h"
+#include "arduino_ros_interface.h"
 
-//Error Vars
-const int ERROR_ENCODER_COUNT = 0b0001;
-const int ERROR_LIMIT_SWITCH = 0b0010;
-const int ERROR_DIRECTION = 0b0100;
-
-bool error_encoder_count = false;
-bool error_limit_switch = false;
-bool error_direction = false;
-
-bool left_limit_flag = false;
-bool right_limit_flag = false;
 bool limit_switch_flag = false;
 
 SteeringHardwareInterface::SteeringHardwareInterface()
@@ -40,11 +30,15 @@ SteeringHardwareInterface::SteeringHardwareInterface()
   pinMode(pin_limit_switch_left_, INPUT);
   pinMode(pin_limit_switch_right_, INPUT);
 
+  limit_switch_flag = false;
+
   // ISR
-  attachInterrupt(digitalPinToInterrupt(pin_int_limit_switch_), doLimitSwitch, RISING);
+  attachInterrupt(digitalPinToInterrupt(pin_int_limit_switch_), activateLimitSwitchFlag, RISING);
 
   // Enable ISRs
   interrupts();
+
+  warning_code_ = NO_WARNING;
 }
 
 SteeringHardwareInterface::~SteeringHardwareInterface()
@@ -68,11 +62,18 @@ void SteeringHardwareInterface::steeringMotor(int desired_pwm)
   {
     digitalWrite(pin_ina_, LOW);
     digitalWrite(pin_inb_, LOW);
-    desired_pwm = 0;
   }
   else
   {
-    error_direction = true;
+    if(abs(desired_pwm) > ABS_MAX_STEERING_MOTOR_PWM)
+    {
+      warning_code_ = STEERING_PWM_OUT_OF_RANGE;
+    }
+    else
+    {
+      warning_code_ = PWM_TRYING_TO_EXCEED_STEERING_LIMITS;
+    }
+
     digitalWrite(pin_ina_, LOW);
     digitalWrite(pin_inb_, LOW);
     desired_pwm = 0;
@@ -82,7 +83,7 @@ void SteeringHardwareInterface::steeringMotor(int desired_pwm)
 
 }
 
-void SteeringHardwareInterface::doLimitSwitch(void)
+void SteeringHardwareInterface::activateLimitSwitchFlag(void)
 {
   limit_switch_flag = true;
 }
@@ -94,26 +95,12 @@ float* SteeringHardwareInterface::getSteeringMeasures(void)
   return measures_;
 }
 
-int SteeringHardwareInterface::getSteeringError(void)
+int SteeringHardwareInterface::getSteeringWarningCode(void)
 {
-  int error_code = 0;
-
-  if (error_encoder_count)
-  {
-    error_code += ERROR_ENCODER_COUNT;
-    error_encoder_count = false;
-  }
-
-  if (error_direction)
-  {
-    error_code += ERROR_DIRECTION;
-    error_direction = false;
-  }
-
-  return error_code;
+  return warning_code_;
 }
 
-int SteeringHardwareInterface::readLimitSwitches(void)
+int SteeringHardwareInterface::readAndResetLimitSwitchFlag(void)
 {
   int result = 0;
   if (limit_switch_flag)

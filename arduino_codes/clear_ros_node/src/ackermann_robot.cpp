@@ -197,7 +197,7 @@ void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimate
     state_estimator_->correctHall(speed_left_rear_wheel); // Make EKF correction using speed observation
   }
 
-  if (steering_actuator_->readLimitSwitches()) // If any steering limit switch is reached
+  if (steering_actuator_->readAndResetLimitSwitchFlag()) // If any steering limit switch is reached
   {
     float observed_theta = 0.0;
     if (estimated_state_.steering_angle > 0.0)

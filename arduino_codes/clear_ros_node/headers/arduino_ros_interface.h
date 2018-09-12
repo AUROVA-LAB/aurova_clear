@@ -50,5 +50,7 @@
 #define NO_WARNING                                           0
 #define RECEIVING_ROS_CONTROLS_WHILE_NOT_BEING_IN_ROS_MODE   1 //Callbacks are activated but not listened
 #define LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER              2
+#define STEERING_PWM_OUT_OF_RANGE                            3
+#define PWM_TRYING_TO_EXCEED_STEERING_LIMITS                 4
 
 #endif

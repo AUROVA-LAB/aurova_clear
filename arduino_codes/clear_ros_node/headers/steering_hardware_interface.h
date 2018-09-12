@@ -29,6 +29,8 @@ private:
 
   float measures_[2]; // pulses, vel
 
+  int warning_code_;
+
 public:
 
   EncoderHardwareInterfacePtr steering_encoder_;
@@ -37,6 +39,10 @@ public:
 
   /*!
    * \brief Moves the vehicle steering
+   *
+   * It checks the limit switches pins to allow
+   * or deny the movement.
+   *
    * \param desired_pwm is a PWM value with sign
    * 0 < desired_pwm < 256: moves RIGHT,
    * -256 < desired_pwm < 0: moves LEFT,
@@ -45,10 +51,12 @@ public:
   void steeringMotor(int desired_pwm);
 
   /*!
-   * \brief ISR that update the steering limits reading the sensors
-   * Any limit switch sensor call this interruption
+   * \brief ISR that activates a flag that indicates
+   * that any of the two limit switches has been reached
+   * It is only used to fire an EKF observation, not to
+   * stop the motors if reached.
    */
-  static void doLimitSwitch(void);
+  static void activateLimitSwitchFlag(void);
 
   /*!
    * \brief Convert the encoder_count in radians
@@ -60,10 +68,23 @@ public:
   /*!
    * \brief Verify some important variables and report if there are some error
    * Return the binary error code
+   *
+   * TODO: Integrate this warnings in the ROS interface
    */
-  int getSteeringError(void);
+  int getSteeringWarningCode(void);
 
-  int readLimitSwitches(void);
+  /*!
+   * \brief This read the limit switch flag state
+   * and resets the flag. This makes that only one
+   * EKF correction step is applied when a limit
+   * switch is reached. TIP: In case of problematic
+   * EKF corrections using limit switches, one way to
+   * improve the performance could be to launch the EKF
+   * correction step within the interruption, so this
+   * functions would be placed in the ackermann_robot
+   * class.
+   */
+  int readAndResetLimitSwitchFlag(void);
 
 };
 
