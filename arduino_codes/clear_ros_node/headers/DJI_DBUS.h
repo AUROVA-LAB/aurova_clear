@@ -52,6 +52,11 @@ public:
   DJI_DBUS(HardwareSerial & serial) :
       _serial(serial)
   {
+    feedState = 0;
+    toChannels = 0;
+    inData = 0;
+    bufferIndex = 0;
+    failsafe_status = 0;
   }
 
   uint8_t sbusData[25];
