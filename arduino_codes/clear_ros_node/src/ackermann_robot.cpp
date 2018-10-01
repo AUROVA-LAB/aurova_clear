@@ -7,65 +7,65 @@
 
 AckermannRobot::AckermannRobot()
 {
-  operational_mode_                        = EMERGENCY_STOP;
-  last_operational_mode_                   = operational_mode_;
+  operational_mode_ = EMERGENCY_STOP;
+  last_operational_mode_ = operational_mode_;
 
-  estimated_state_.steering_angle          = 0.0;  // deg
+  estimated_state_.steering_angle = 0.0;  // deg
   estimated_state_.steering_angle_velocity = 0.0;  // deg/s
 
-  estimated_state_.speed                   = 0.0;  // m/s
-  estimated_state_.acceleration            = 0.0;  // m/s^2
-  estimated_state_.jerk                    = 0.0;  // m/s^3
+  estimated_state_.speed = 0.0;  // m/s
+  estimated_state_.acceleration = 0.0;  // m/s^2
+  estimated_state_.jerk = 0.0;  // m/s^3
 
-  measured_state_.steering_angle           = 0.0;  // deg
-  measured_state_.steering_angle_velocity  = 0.0;  // deg/s
+  measured_state_.steering_angle = 0.0;  // deg
+  measured_state_.steering_angle_velocity = 0.0;  // deg/s
 
-  measured_state_.speed                    = 0.0;  // m/s
-  measured_state_.acceleration             = 0.0;  // m/s^2
-  measured_state_.jerk                     = 0.0;  // m/s^3
+  measured_state_.speed = 0.0;  // m/s
+  measured_state_.acceleration = 0.0;  // m/s^2
+  measured_state_.jerk = 0.0;  // m/s^3
 
-  desired_state_.steering_angle            = 0.0;  // deg
-  desired_state_.steering_angle_velocity   = 0.0;  // deg/s
+  desired_state_.steering_angle = 0.0;  // deg
+  desired_state_.steering_angle_velocity = 0.0;  // deg/s
 
-  desired_state_.speed                     = 0.0;  // m/s
-  desired_state_.acceleration              = 0.0;  // m/s^2
-  desired_state_.jerk                      = 0.0;  // m/s^3
+  desired_state_.speed = 0.0;  // m/s
+  desired_state_.acceleration = 0.0;  // m/s^2
+  desired_state_.jerk = 0.0;  // m/s^3
 
-  remote_control_.speed_volts                           = 0.0;
-  remote_control_.steering_angle_pwm                    = 0.0;
+  remote_control_.speed_volts = 0.0;
+  remote_control_.steering_angle_pwm = 0.0;
 
-  remote_control_.desired_state.steering_angle          = 0.0;   // deg
+  remote_control_.desired_state.steering_angle = 0.0;   // deg
   remote_control_.desired_state.steering_angle_velocity = 0.0;   // deg/s
 
-  remote_control_.desired_state.speed                   = 0.0;   // m/s
-  remote_control_.desired_state.acceleration            = 0.0;   // m/s^2
-  remote_control_.desired_state.jerk                    = 0.0;   // m/s^3
+  remote_control_.desired_state.speed = 0.0;   // m/s
+  remote_control_.desired_state.acceleration = 0.0;   // m/s^2
+  remote_control_.desired_state.jerk = 0.0;   // m/s^3
 
   error_code_ = NO_ERROR;
   warning_code_ = NO_WARNING;
 
-  speed_volts_        = 0.0;
+  speed_volts_ = 0.0;
   steering_angle_pwm_ = 0.0;
 
-  speed_volts_pid_        = 0.0;
+  speed_volts_pid_ = 0.0;
   steering_angle_pwm_pid_ = 0.0;
 
-  left_steering_limit_switch_position_  = ABS_MAX_LEFT_ANGLE_DEG;
+  left_steering_limit_switch_position_ = ABS_MAX_LEFT_ANGLE_DEG;
   right_steering_limit_switch_position_ = ABS_MAX_RIGHT_ANGLE_DEG;
 
-  flag_limiting_speed_by_reactive_  = false;
+  flag_limiting_speed_by_reactive_ = false;
   remote_control_use_PID_ = true;
 
   dBus_ = new DJI_DBUS(RC_PORT);
   dBus_->begin();
 
-  speed_measures_    = NULL;
+  speed_measures_ = NULL;
   steering_measures_ = NULL;
 
-  speed_actuator_    = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
+  speed_actuator_ = new SpeedHardwareInterface(PIN_CH1, PIN_CH2);
   steering_actuator_ = new SteeringHardwareInterface();
 
-  speed_actuator_->  actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
+  speed_actuator_->actuateMotor(0.0);  // To ensure that in the start the output voltage is equal to zero
 
   steering_actuator_->steeringMotor(0);
   steering_actuator_->steering_encoder_->encoderReset(11);
@@ -103,13 +103,13 @@ AckermannRobot::AckermannRobot()
   // Desynchronising sampling times for I2C
   if (SAMPLING_TIME_SPEED_MILLIS_ > SAMPLING_TIME_STEERING_MILLIS_)
   {
-    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_MILLIS_ * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_))
-        / SAMPLING_TIME_SPEED_MILLIS_;
+    millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_MILLIS_
+        * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_)) / SAMPLING_TIME_SPEED_MILLIS_;
   }
   else if (SAMPLING_TIME_STEERING_MILLIS_ > SAMPLING_TIME_SPEED_MILLIS_)
   {
-    millis_since_last_speed_reading_ = SAMPLING_TIME_SPEED_MILLIS_ * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_))
-        / SAMPLING_TIME_STEERING_MILLIS_;
+    millis_since_last_speed_reading_ = SAMPLING_TIME_SPEED_MILLIS_
+        * (float)(fabs(SAMPLING_TIME_STEERING_MILLIS_ - SAMPLING_TIME_SPEED_MILLIS_)) / SAMPLING_TIME_STEERING_MILLIS_;
   }
   else
     millis_since_last_steering_reading_ = SAMPLING_TIME_STEERING_MILLIS_ / 2.0;
@@ -142,7 +142,6 @@ void AckermannRobot::resetSteering(void)
   steering_controller_->resetPID();
 }
 
-
 ////////////////////////////////////////
 // Public interface
 ////////////////////////////////////////
@@ -160,7 +159,7 @@ void AckermannRobot::updateROSDesiredState(const ackermann_msgs::AckermannDriveS
 }
 
 void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
-                          ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
+                                 ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
 {
   if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
   {
@@ -269,26 +268,28 @@ void AckermannRobot::readRemoteControl(void)
       dBus_->UpdateChannels(); // Load the new data
       dBus_->toChannels = RC_NEW_DATA_READED; // Reset the flag to indicate "ready to receive new data"
 
-
       // We map the RC control rod positions to volts, pwm, meters per second and steering degrees, depending on the flag use_PID_
       // the motors will use either the raw volts and pwm or the output of the PID controllers, that use the RC speed and steering
       // as setpoints
 
       remote_control_.speed_volts = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
-                                             RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                             -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
+      RC_MIN_CONTROL_ROD_VALUE,
+                                             RC_MAX_CONTROL_ROD_VALUE, -ABS_MAX_SPEED_VOLTS, ABS_MAX_SPEED_VOLTS);
 
       remote_control_.steering_angle_pwm = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
-                                                    RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                    ABS_MAX_STEERING_MOTOR_PWM, -1 * ABS_MAX_STEERING_MOTOR_PWM);
+      RC_MIN_CONTROL_ROD_VALUE,
+                                                    RC_MAX_CONTROL_ROD_VALUE, ABS_MAX_STEERING_MOTOR_PWM,
+                                                    -1 * ABS_MAX_STEERING_MOTOR_PWM);
 
       remote_control_.desired_state.speed = mapFloat(dBus_->channels[RC_SPEED_CONTROL_ROD],
-                                                     RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                     -ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND);
+      RC_MIN_CONTROL_ROD_VALUE,
+                                                     RC_MAX_CONTROL_ROD_VALUE, -ABS_MAX_SPEED_METERS_SECOND,
+                                                     ABS_MAX_SPEED_METERS_SECOND);
 
       remote_control_.desired_state.steering_angle = mapFloat(dBus_->channels[RC_STEERING_CONTROL_ROD],
-                                                              RC_MIN_CONTROL_ROD_VALUE, RC_MAX_CONTROL_ROD_VALUE,
-                                                              ABS_MAX_STEERING_ANGLE_DEG, -ABS_MAX_STEERING_ANGLE_DEG);
+      RC_MIN_CONTROL_ROD_VALUE,
+                                                              RC_MAX_CONTROL_ROD_VALUE, ABS_MAX_STEERING_ANGLE_DEG,
+                                                              -ABS_MAX_STEERING_ANGLE_DEG);
       // Operational mode switching
       if (operational_mode_ != EMERGENCY_STOP) // During normal operation we switch between modes just reading the RC switches
       {
@@ -303,19 +304,22 @@ void AckermannRobot::readRemoteControl(void)
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE;
         else
           operational_mode_ = REMOTE_CONTROL;
-      }else{ // To exit from emergency mode we need to check four conditions
-        if (operational_mode_ == EMERGENCY_STOP and
-            dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED and
-            dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_NO_EMERGENCY and
-            dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM and
-            digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
+      }
+      else
+      { // To exit from emergency mode we need to check four conditions
+        if (operational_mode_ == EMERGENCY_STOP
+            and dBus_->channels[RC_OPERATIONAL_MODE_SWITCH] == RC_SAFETY_SYSTEM_DISABLED
+            and dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_NO_EMERGENCY
+            and dBus_->channels[RC_REARM_AND_HORN_CONTROL] == RC_REARM
+            and digitalRead(ON_BOARD_EMERGENCY_SWITCH) == HIGH) // The first three are from the RC while the last one reads the on-board emergency switch
         {
           operational_mode_ = REMOTE_CONTROL_NOT_SAFE; // We always go to full manual when exiting from emergency
           error_code_ = NO_ERROR;
         }
       }
 
-      if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_DISABLE_PID && operational_mode_ == REMOTE_CONTROL_NOT_SAFE)
+      if (dBus_->channels[RC_EMERGENCY_SWITCH_AND_DISABLE_PID] == RC_DISABLE_PID
+          && operational_mode_ == REMOTE_CONTROL_NOT_SAFE)
       {
         remote_control_use_PID_ = false;
       }
@@ -346,16 +350,14 @@ void AckermannRobot::updateFiniteStateMachine(int millisSinceLastReactiveUpdate,
     last_operational_mode_ = operational_mode_;
   }
 
-  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE &&
-      operational_mode_ != EMERGENCY_STOP &&
-      millisSinceLastReactiveUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && operational_mode_ != EMERGENCY_STOP
+      && millisSinceLastReactiveUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
     error_code_ = REACTIVE_SAFETY_TOPIC_NOT_RECEIVED;
   }
 
-  if (operational_mode_ == ROS_CONTROL &&
-      millisSinceLastROSControlUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+  if (operational_mode_ == ROS_CONTROL && millisSinceLastROSControlUpdate > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
   {
     operational_mode_ = EMERGENCY_STOP;
     error_code_ = ROS_CONTROL_TOPIC_NOT_RECEIVED;
@@ -410,12 +412,14 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed
 
   flag_limiting_speed_by_reactive_ = false;
   warning_code_ = NO_WARNING;
-  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE && (desired_state_.speed > max_recommended_forward_speed || desired_state_.speed < max_recommended_backward_speed))
+  if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE
+      && (desired_state_.speed > max_recommended_forward_speed
+          || fabs(desired_state_.speed) > max_recommended_backward_speed))
   {
-    if(desired_state_.speed > max_recommended_forward_speed)
+    if (desired_state_.speed > max_recommended_forward_speed)
       desired_state_.speed = max_recommended_forward_speed;
-    else if (desired_state_.speed < max_recommended_backward_speed)
-      desired_state_.speed = max_recommended_backward_speed;
+    else if (fabs(desired_state_.speed) > max_recommended_backward_speed)
+      desired_state_.speed = -1 * max_recommended_backward_speed;
 
     flag_limiting_speed_by_reactive_ = true;
     warning_code_ = LIMITING_SPEED_BY_REACTIVE_SAFETY_LAYER;
@@ -431,8 +435,7 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed
   {
     speed_controller_->computePID(ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_METERS_SECOND, ABS_MAX_SPEED_VOLTS);
   }
-  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG,
-                                   ABS_MAX_STEERING_MOTOR_PWM);
+  steering_controller_->computePID(ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_ANGLE_DEG, ABS_MAX_STEERING_MOTOR_PWM);
 }
 
 void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volts_and_steering_pwm_being_applicated)
@@ -481,8 +484,6 @@ void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volt
 
 }
 
-
-
 /////////////////////////////////////////////
 // Setters and getters
 /////////////////////////////////////////////
@@ -497,7 +498,7 @@ void AckermannRobot::getDesiredState(ackermann_msgs::AckermannDriveStamped& desi
 }
 
 void AckermannRobot::setSpeedAndSteeringPIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,
-                             const std_msgs::Float32MultiArray& desired_ste_pid_gains)
+                                                 const std_msgs::Float32MultiArray& desired_ste_pid_gains)
 {
   setSpeedPIDGains(desired_vel_pid_gains);
   setSteeringPIDGains(desired_ste_pid_gains);
