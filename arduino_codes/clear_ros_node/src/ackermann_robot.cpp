@@ -414,11 +414,11 @@ void AckermannRobot::calculateCommandOutputs(float max_recommended_forward_speed
   warning_code_ = NO_WARNING;
   if (operational_mode_ != REMOTE_CONTROL_NOT_SAFE
       && (desired_state_.speed > max_recommended_forward_speed
-          || fabs(desired_state_.speed) > max_recommended_backward_speed))
+          || desired_state_.speed < -1*max_recommended_backward_speed))
   {
     if (desired_state_.speed > max_recommended_forward_speed)
       desired_state_.speed = max_recommended_forward_speed;
-    else if (fabs(desired_state_.speed) > max_recommended_backward_speed)
+    else
       desired_state_.speed = -1 * max_recommended_backward_speed;
 
     flag_limiting_speed_by_reactive_ = true;

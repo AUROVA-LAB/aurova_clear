@@ -87,7 +87,7 @@ ros::NodeHandle nh;     // The ros node implements the high level interface
 
 ////////////////////////
 // Inputs
-int verbose_level = REGULAR_VERBOSE_LEVEL;  // Variable to set the amount of debugging information that is sent trough the ROS interface
+int verbose_level = DEBUG_VERBOSE_LEVEL;  // Variable to set the amount of debugging information that is sent trough the ROS interface
 float max_recommended_forward_speed  = 0.0; // Variable to store the maximum forward speed recommended by the reactive systems
 float max_recommended_backward_speed = 0.0; // Variable to store the maximum backward speed recommended by the reactive systems
 
@@ -221,13 +221,13 @@ ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level
  * Subscriber that receives the maximum forward speed for the platform, it comes from the safety system
  */
 ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
-    "velocity_recommender_alg_node/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
+    "/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the maximum backward speed for the platform, it comes from the safety system
  */
 ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
-    "velocity_recommender_alg_node/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
+    "/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the setpoint for the PID controllers (steering in deg and speed in m/s)
