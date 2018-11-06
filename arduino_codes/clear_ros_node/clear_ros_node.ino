@@ -238,7 +238,7 @@ ros::Subscriber<ackermann_msgs::AckermannDriveStamped> ackermann_subscriber("des
 /*!
  * Subscriber that receives the gains for the PID speed controller
  */
-ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_speed_controller_gains", &cb_velPIDGains);
+ros::Subscriber<std_msgs::Float32MultiArray> vel_pid_gains_subscriber("desired_speed_controller_gains",&cb_velPIDGains);
 
 /*!
  * Subscriber that receives the gains for the PID steering controller
