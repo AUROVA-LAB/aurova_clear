@@ -112,7 +112,17 @@ void EKF::predict(float u_v)
   //State prediction
   //X[0][0] = X[0][0]; // initial steering angle does not depend on time
   //X[1][0] = X[1][0]; // constant position model plus perturbation noise
-  X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
+
+  // If the control signal (voltage) is small the platform stops very quickly
+  // so our prediction is a speed of 0.0 meters per second
+  if (fabs(u_v) < MIN_VOLTS_TO_RELEASE_BRAKE)
+  {
+    X[2][0] = 0.0;
+  }
+  else
+  {
+    X[2][0] = X[2][0] + G_v * (u_v - u_v_k_minus_one);
+  }
   u_v_k_minus_one = u_v;
 
   // Covariance prediction
