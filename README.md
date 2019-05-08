@@ -1,6 +1,12 @@
 # CLEAR
 This repository contains the software and electronic designs developed for the CLEAR (Control Logic for Easy Ackermann Robotization) project.
 
+** Related publications **
+
+del Pino, I., Muñoz-Bañon, M. Á., Cova-Rocamora, S., Contreras, M. Á., Candelas, F. A., & Torres, F. (2019). Deeper in BLUE. Journal of Intelligent & Robotic Systems, 1-19.
+
+Cova Rocamora, S., Pino, I. D., Muñoz Bañon, M. A., Contreras, M. Á., Candelas, F. A., & Torres, F. (2018). CLEAR. Un módulo para la robotización de máquinas Ackermann. Actas de las XXXIX Jornadas de Automática, Badajoz, 5-7 de Septiembre de 2018.
+
 ![full_system_architecture_overview](documentation/images/system_architecture.png)
 
 The aim of this project is to gather in a single module all the common features needed to integrate an Ackermann (or car-like) robot in ROS. It contains a finite state machine that switches between different operational modes, namely, Remote Control Safe, Remote Control NOT safe, ROS control and Emergency Stop. Attending to the operational mode, the vehicle will accept commands from the active controller, either ROS or RC. Safety signals will override any command, limiting the vehicle speed or stoping it (reactive safety system not taken into account only in "Remote Control NOT safe" mode) or even putting the vehicle in Emergency mode if some critical signals are lost (ros communication, RC, etc).
