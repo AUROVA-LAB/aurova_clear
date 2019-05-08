@@ -1,7 +1,7 @@
 # CLEAR
 This repository contains the software and electronic designs developed for the CLEAR (Control Logic for Easy Ackermann Robotization) project.
 
-** Related publications **
+**Related publications**
 
 del Pino, I., Muñoz-Bañon, M. Á., Cova-Rocamora, S., Contreras, M. Á., Candelas, F. A., & Torres, F. (2019). Deeper in BLUE. Journal of Intelligent & Robotic Systems, 1-19.
 
