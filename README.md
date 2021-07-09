@@ -5,7 +5,33 @@ This repository contains the software and electronic designs developed for the C
 
 del Pino, I., Munoz-Banon, M. A., Cova-Rocamora, S., Contreras, M. A., Candelas, F. A., & Torres, F. (2020). Deeper in BLUE. Journal of Intelligent & Robotic Systems, 98(1), 207-225.
 
+Citation:
+``` 
+@article{del2020deeper,
+  title={Deeper in BLUE},
+  author={del Pino, Ivan and Munoz-Banon, Miguel A and Cova-Rocamora, Saul and Contreras, Miguel A and Candelas, Francisco A and Torres, Fernando},
+  journal={Journal of Intelligent \& Robotic Systems},
+  volume={98},
+  number={1},
+  pages={207--225},
+  year={2020},
+  publisher={Springer}
+}
+``` 
+
 Cova Rocamora, S., Pino, I. D., Muñoz Bañon, M. A., Contreras, M. Á., Candelas, F. A., & Torres, F. (2018). CLEAR. Un módulo para la robotización de máquinas Ackermann. Actas de las XXXIX Jornadas de Automática, Badajoz, 5-7 de Septiembre de 2018.
+
+Citation:
+```
+@inproceedings{cova2018clear,
+  title={CLEAR. Un m{\'o}dulo para la robotizaci{\'o}n de m{\'a}quinas Ackermann},
+  author={Cova-Rocamora, Sa{\'u}l and Pino, Iv{\'a}n del and Munoz-Banon, Miguel {\'A} and Contreras, Miguel {\'A} and Candelas, Francisco A and Torres, Fernando},
+  booktitle={XXXIX Jornadas de Autom{\'a}tica},
+  pages={372--378},
+  year={2018},
+  organization={{\'A}rea de Ingenier{\'\i}a de Sistemas y Autom{\'a}tica, Universidad de Extremadura}
+}
+```
 
 ![full_system_architecture_overview](documentation/images/system_architecture.png)
 
