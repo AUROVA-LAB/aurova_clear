@@ -52,8 +52,11 @@
  *                   More details of the RC interface are available in the GitHub repository.
  */
 
+#include "arduino_ros_interface.h"
+#include "configuration_vehicle_hardware.h"
 #include <ackermann_robot.h>
 #include <ros.h>
+#include <elapsedMillis.h>
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
@@ -63,8 +66,7 @@
 #include <avr/wdt.h>
 #include <Wire.h> // I2C library
 
-#include "headers/arduino_ros_interface.h"
-#include "headers/configuration_vehicle_hardware.h"
+
 
 ///////////////////////////////////////////////////
 // Declaration of Arduino global variables

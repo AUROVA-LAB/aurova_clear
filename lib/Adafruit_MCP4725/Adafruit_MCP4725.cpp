@@ -26,7 +26,7 @@
 
 #include <Wire.h>
 
-#include "../headers/Adafruit_MCP4725.h"
+#include "Adafruit_MCP4725.h"
 
 /**************************************************************************/
 /*! 
