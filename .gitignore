@@ -1,4 +1,6 @@
 #ignore user configuration files
+.pio/
+.vscode/
 arduino_codes/clear_ros_node/Release
 arduino_codes/clear_ros_node/.settings
 arduino_codes/clear_ros_node/.ino.cpp
