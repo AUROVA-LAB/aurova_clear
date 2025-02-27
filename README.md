@@ -67,43 +67,21 @@ In addition, every _desired_ topic produces an _echo_ topic to check communicati
 
 ### Setup instructions
 
-Install Arduino software: "sudo apt-get install arduino"
+* Install Visual Studio Code
 
-Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
+* Install PlatformIO extension in VS Code: launch VS Code - Extensions - search PlatformIO - click Install
 
-Copy this folder to PROJECT_LOC/arduinoPlugin/packages/arduino if you have not it: https://drive.google.com/file/d/1eAQtIZ6uP7VtDr6xbe-4p2OZSWTsh-2O/view
+* Clone this repository
 
-Download and install ackermann messages: https://github.com/ros-drivers/ackermann_msgs
+* In VS Code, go to Open folder and select aurova_clear.
 
-Download and install rosserial: https://github.com/ros-drivers/rosserial or "sudo apt-get install ros-kinatic-rosserial-arduino"
+* Edit the file platformio.ini, setting upload_port to the port where the Arduino board is connected. 
 
-Clone CLEAR repo in your catkin workspace:
+* In the left bar menu, select PlatformIO. You can select there Build and Upload.
 
-In Eclipse:
+* It's also possible to search in the Command Palette (Ctrl+Shift+P) the commands PlatformIO:Build and PlatformIO:Upload.
 
-* import Projects from Git - Existing local repository
-
-* select CLEAR
-
-* import existing Eclipse project
-
-* click next
-
-* click finish
-
-* right click on the project from Project Explorer - click Properties - click Arduino (if it displays an error message keep trying until it enters the Arduino setup page)
-
-* select platform folder
-
-* select board "Arduino Genuino Mega or Mega 2560"
-
-* keep "default" in upload protocol
-
-* select processor Atmega2560
-
-* apply and close
-
-To check everything is fine just compile the project!
+To check everything is fine just build the project!
 
 ### Web resources
 
@@ -113,13 +91,9 @@ ROS download: http://wiki.ros.org/kinetic/Installation/Ubuntu
 
 Coding style: http://wiki.ros.org/CppStyleGuide
 
-Template* to autoformat with Eclipse: http://wiki.ros.org/IDEs#Auto_Formatting
+Visual Studio dowload: https://code.visualstudio.com/
 
-_*by the time I'm writting this, there is no kinetic version, but I've installed the Indigo version and works fine_ :smile:
-
-Eclipse Oxygen: http://www.eclipse.org/downloads/packages/eclipse-ide-cc-developers/oxygen1a
-
-Install Sloeber: launch Eclipse - click Help - click Eclipse Marketplace - search Sloeber - click Install
+Install PlatformIO: https://platformio.org/
 
 Install Doxygen: type in the terminal `sudo apt-get install doxygen`
 
