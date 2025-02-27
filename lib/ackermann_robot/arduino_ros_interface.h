@@ -20,7 +20,7 @@
  * - Robot warning code
  * - Verbose level
  */
-#define NUM_OF_CLEAR_STATUS_VARIABLES   5
+#define NUM_OF_CLEAR_STATUS_VARIABLES   6
 #define NUM_OF_CONTROLLED_MOTORS        2
 #define NUM_OF_PID_GAINS                3
 #define NUM_OF_STEERING_LIMIT_SWITCHES  2

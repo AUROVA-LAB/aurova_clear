@@ -57,7 +57,7 @@
 #include <ackermann_robot.h>
 #include <ros.h>
 #include <elapsedMillis.h>
-#include "ackermann_msgs/AckermannDriveStamped.h"
+#include "ackermann_msgs/AckermannDrive.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/Int16.h"
 #include "std_msgs/Float32.h"
@@ -78,7 +78,7 @@ bool communicate_with_ROS = false;   // Flag set in COMMUNICATION_REFRESH_TIME_I
 unsigned long int current_time  = 0; // Time counter to set the communication refresh flag properly
 unsigned long int previous_time = 0; // Second time counter for communication refresh (we need to counters to calculate time increments)
 
-elapsedMillis reactive_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
+// elapsedMillis reactive_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the safety reactive callback is not activated
 
 elapsedMillis ros_control_watchdog = 0; // Watchdog to enter into EMERGENCY mode if the desired_ackermann_state callback is not activated
 
@@ -95,7 +95,7 @@ float max_recommended_backward_speed = 0.0; // Variable to store the maximum bac
 
 // Messages to store input topics data, there is no need of initialising them
 // because they are only used after the callback executions.
-ackermann_msgs::AckermannDriveStamped desired_ackermann_state;  // Message to store the setpoints for the PID controllers
+ackermann_msgs::AckermannDrive desired_ackermann_state;  // Message to store the setpoints for the PID controllers
 std_msgs::Float32MultiArray desired_speed_pid_gains;            // Message to store the kp, ki, kd gains of the speed PID controller
 std_msgs::Float32MultiArray desired_steering_pid_gains;         // Message to store the kp, ki, kd gains of the steering PID controller
 std_msgs::Float32MultiArray desired_limit_switches_position_LR; // Message to store the values of both LS angular position, useful during calibration
@@ -105,13 +105,13 @@ std_msgs::Float32MultiArray desired_limit_switches_position_LR; // Message to st
 // Outputs
 int ros_interface_warning_code = NO_WARNING; // Variable sent in the robot_status message
 
-ackermann_msgs::AckermannDriveStamped estimated_ackermann_state; // mean values of EKF estimated state: steering angle (deg) and speed (m/s)
-ackermann_msgs::AckermannDriveStamped variances_of_estimated_ackermann_state; // variances of EKF estimated values
+ackermann_msgs::AckermannDrive estimated_ackermann_state; // mean values of EKF estimated state: steering angle (deg) and speed (m/s)
+ackermann_msgs::AckermannDrive variances_of_estimated_ackermann_state; // variances of EKF estimated values
 std_msgs::Float32MultiArray speed_volts_and_steering_pwm_being_applicated; // current outputs of both PID controllers
 std_msgs::Float32MultiArray CLEAR_status; // message with five values, indicating operational mode, error code (only non zero in emergency mode), two warning codes and verbose level
 
 // Echoes to check communications
-ackermann_msgs::AckermannDriveStamped desired_ackermann_state_echo;
+ackermann_msgs::AckermannDrive desired_ackermann_state_echo;
 std_msgs::Float32MultiArray speed_pid_gains_echo;
 std_msgs::Float32MultiArray steering_pid_gains_echo;
 std_msgs::Float32MultiArray echo_desired_limit_switches_position_LR;
@@ -134,20 +134,20 @@ void cb_desiredVerboseLevel(const std_msgs::Int16& desired_verbose_level_msg)
 /*! \brief Callback to store the maximum forward recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forward_speed_msg)
-{
-  max_recommended_forward_speed = max_recommended_forward_speed_msg.data;
-  reactive_watchdog = 0;
-}
+// void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forward_speed_msg)
+// {
+//   max_recommended_forward_speed = max_recommended_forward_speed_msg.data;
+//   reactive_watchdog = 0;
+// }
 
 /*! \brief Callback to store the maximum recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_backward_speed_msg)
-{
-  max_recommended_backward_speed = max_recommended_backward_speed_msg.data;
-  reactive_watchdog = 0;
-}
+// void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_backward_speed_msg)
+// {
+//   max_recommended_backward_speed = max_recommended_backward_speed_msg.data;
+//   reactive_watchdog = 0;
+// }
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
  *
@@ -156,13 +156,12 @@ void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_bac
  * @param desired_ackermann_state_msg a desired ackermann state message that should include
  * the steering angle (degrees) and the forward velocity (m/s). The rest of the values are unused.
  */
-void cb_desiredAckermannState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_msg)
+void cb_desiredAckermannState(const ackermann_msgs::AckermannDrive& desired_ackermann_state_msg)
 {
   if (myRobot.getOperationalMode() == ROS_CONTROL)
   {
     //We copy the incoming message
-    desired_ackermann_state.header = desired_ackermann_state_msg.header;
-    desired_ackermann_state.drive = desired_ackermann_state_msg.drive;
+    desired_ackermann_state = desired_ackermann_state_msg;
     ros_interface_warning_code = NO_WARNING;
   }
   else
@@ -222,19 +221,19 @@ ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level
 /*!
  * Subscriber that receives the maximum forward speed for the platform, it comes from the safety system
  */
-ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
-    "/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
+// ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
+//     "/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the maximum backward speed for the platform, it comes from the safety system
  */
-ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
-    "/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
+// ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
+//     "/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the setpoint for the PID controllers (steering in deg and speed in m/s)
  */
-ros::Subscriber<ackermann_msgs::AckermannDriveStamped> ackermann_subscriber("desired_ackermann_state",
+ros::Subscriber<ackermann_msgs::AckermannDrive> ackermann_subscriber("desired_ackermann_state",
                                                                             &cb_desiredAckermannState);
 
 /*!
@@ -323,6 +322,8 @@ void sendCLEARStatus(void)
   CLEAR_status.data[2] = ros_interface_warning_code;
   CLEAR_status.data[3] = myRobot.getWarningCode();
   CLEAR_status.data[4] = verbose_level; //DEBUG (float)reactive_watchdog;
+  // CLEAR_status.data[5] = reactive_watchdog;
+  CLEAR_status.data[5] = ros_control_watchdog;
 
   CLEAR_status_publisher.publish(&CLEAR_status);
 }
@@ -362,7 +363,7 @@ void reserveDynamicMemory(void)
  */
 void setup()
 {
-  Serial.begin(57600);
+  Serial.begin(115200); //TODO check if it works better with 115200
 
   wdt_disable();           // watchdog timer configuration
   wdt_enable(WDTO_500MS);  // it is set to automatically reboot the arduino in case of main loop hanging
@@ -402,8 +403,8 @@ void setup()
   nh.advertise(estimated_ackermann_publisher);
   nh.advertise(variance_ackermann_publisher);
 
-  nh.subscribe(max_recommended_forward_speed_subscriber);
-  nh.subscribe(max_recommended_backward_speed_subscriber);
+  // nh.subscribe(max_recommended_forward_speed_subscriber);
+  // nh.subscribe(max_recommended_backward_speed_subscriber);
 }
 
 /*!
@@ -481,8 +482,8 @@ void sendOutputsToROS(void)
 void saturateSafetyWatchdogsIfNeeded(void)
 {
   const int MARGIN_MS = 1000; // Any number greater than zero should work fine
-  if((int)reactive_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
-    reactive_watchdog = MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS + MARGIN_MS;
+  // if((int)reactive_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
+  //   reactive_watchdog = MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS + MARGIN_MS;
 
   if((int)ros_control_watchdog > MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS)
     ros_control_watchdog = MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS + MARGIN_MS;
@@ -506,7 +507,7 @@ void loop()
   myRobot.readRemoteControl(); // Decode and map the RC signals
 
   saturateSafetyWatchdogsIfNeeded(); // To avoid overflow
-  myRobot.updateFiniteStateMachine((int)reactive_watchdog, (int)ros_control_watchdog);
+  myRobot.updateFiniteStateMachine(0, (int)ros_control_watchdog); //First argument is reactive_watchdog, that it is disable
 
   myRobot.calculateCommandOutputs(max_recommended_forward_speed, max_recommended_backward_speed); // It uses the reactive safety system speed limitation
 

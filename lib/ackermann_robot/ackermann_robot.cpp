@@ -145,21 +145,21 @@ void AckermannRobot::resetSteering(void)
 ////////////////////////////////////////
 // Public interface
 ////////////////////////////////////////
-void AckermannRobot::updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state)
+void AckermannRobot::updateROSDesiredState(const ackermann_msgs::AckermannDrive& desired_ackermann_state)
 {
-  desired_state_.steering_angle = desired_ackermann_state.drive.steering_angle;
-  desired_state_.steering_angle_velocity = desired_ackermann_state.drive.steering_angle_velocity;
+  desired_state_.steering_angle = desired_ackermann_state.steering_angle;
+  desired_state_.steering_angle_velocity = desired_ackermann_state.steering_angle_velocity;
 
-  desired_state_.speed = desired_ackermann_state.drive.speed;
+  desired_state_.speed = desired_ackermann_state.speed;
   saturateSpeedSetpointIfNeeded(desired_state_.speed);
 
-  desired_state_.acceleration = desired_ackermann_state.drive.acceleration;
-  desired_state_.jerk = desired_ackermann_state.drive.jerk;
+  desired_state_.acceleration = desired_ackermann_state.acceleration;
+  desired_state_.jerk = desired_ackermann_state.jerk;
 
 }
 
-void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimated_ackermann_state,
-                                 ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state)
+void AckermannRobot::updateState(ackermann_msgs::AckermannDrive& estimated_ackermann_state,
+                                 ackermann_msgs::AckermannDrive& covariance_ackermann_state)
 {
   if (millis_since_last_EKF_prediction_ >= TIME_TO_PREDICT_MILLIS_)
   {
@@ -222,24 +222,24 @@ void AckermannRobot::updateState(ackermann_msgs::AckermannDriveStamped& estimate
   float steering_calibration_error_variance = 0.0;
   float steering_cummulated_increment_variance = 0.0;
   state_estimator_->getVariances(steering_calibration_error_variance, steering_cummulated_increment_variance,
-                                 covariance_ackermann_state.drive.speed);
+                                 covariance_ackermann_state.speed);
 
-  covariance_ackermann_state.drive.steering_angle = steering_calibration_error_variance
+  covariance_ackermann_state.steering_angle = steering_calibration_error_variance
       + steering_cummulated_increment_variance;
-  covariance_ackermann_state.drive.steering_angle_velocity = 0.0;
+  covariance_ackermann_state.steering_angle_velocity = 0.0;
 
   estimated_state_.acceleration = steering_calibration_error;
   estimated_state_.jerk = steering_cummulated_increment;
-  covariance_ackermann_state.drive.acceleration = steering_calibration_error_variance;
-  covariance_ackermann_state.drive.jerk = steering_cummulated_increment_variance;
+  covariance_ackermann_state.acceleration = steering_calibration_error_variance;
+  covariance_ackermann_state.jerk = steering_cummulated_increment_variance;
 
   // Passing to messages
-  estimated_ackermann_state.drive.speed = estimated_state_.speed;
-  estimated_ackermann_state.drive.acceleration = estimated_state_.acceleration;
-  estimated_ackermann_state.drive.jerk = estimated_state_.jerk;
+  estimated_ackermann_state.speed = estimated_state_.speed;
+  estimated_ackermann_state.acceleration = estimated_state_.acceleration;
+  estimated_ackermann_state.jerk = estimated_state_.jerk;
 
-  estimated_ackermann_state.drive.steering_angle = estimated_state_.steering_angle;
-  estimated_ackermann_state.drive.steering_angle_velocity = estimated_state_.steering_angle_velocity;
+  estimated_ackermann_state.steering_angle = estimated_state_.steering_angle;
+  estimated_ackermann_state.steering_angle_velocity = estimated_state_.steering_angle_velocity;
 }
 
 void AckermannRobot::readOnBoardUserInterface(void)
@@ -487,14 +487,14 @@ void AckermannRobot::writeCommandOutputs(std_msgs::Float32MultiArray& speed_volt
 /////////////////////////////////////////////
 // Setters and getters
 /////////////////////////////////////////////
-void AckermannRobot::getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo)
+void AckermannRobot::getDesiredState(ackermann_msgs::AckermannDrive& desired_ackermann_state_echo)
 {
-  desired_ackermann_state_echo.drive.steering_angle = desired_state_.steering_angle;
-  desired_ackermann_state_echo.drive.steering_angle_velocity = desired_state_.steering_angle_velocity;
+  desired_ackermann_state_echo.steering_angle = desired_state_.steering_angle;
+  desired_ackermann_state_echo.steering_angle_velocity = desired_state_.steering_angle_velocity;
 
-  desired_ackermann_state_echo.drive.speed = desired_state_.speed;
-  desired_ackermann_state_echo.drive.acceleration = desired_state_.acceleration;
-  desired_ackermann_state_echo.drive.jerk = desired_state_.jerk;
+  desired_ackermann_state_echo.speed = desired_state_.speed;
+  desired_ackermann_state_echo.acceleration = desired_state_.acceleration;
+  desired_ackermann_state_echo.jerk = desired_state_.jerk;
 }
 
 void AckermannRobot::setSpeedAndSteeringPIDGains(const std_msgs::Float32MultiArray& desired_vel_pid_gains,

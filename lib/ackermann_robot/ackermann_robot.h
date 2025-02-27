@@ -15,7 +15,7 @@
 
 #include "arduino_ros_interface.h"
 #include "std_msgs/Float32MultiArray.h"
-#include "ackermann_msgs/AckermannDriveStamped.h"
+#include "ackermann_msgs/AckermannDrive.h"
 #include "DJI_DBUS.h"
 #include "speed_hardware_interface.h"
 #include "steering_hardware_interface.h"
@@ -130,15 +130,15 @@ public:
    * Jerk, Steering Angle and Steering Angle Velocity
    * @param desired_ackermann_state The state variables in ROS message format
    */
-  void updateROSDesiredState(const ackermann_msgs::AckermannDriveStamped& desired_ackermann_state);
+  void updateROSDesiredState(const ackermann_msgs::AckermannDrive& desired_ackermann_state);
 
   /*!
    * Reads the variables that store the odometers readings
    * and calculates all the state variables: speed, acceleration,
    * jerk, steering angle and steering angle velocity
    */
-  void updateState(ackermann_msgs::AckermannDriveStamped& measured_ackermann_state,
-                   ackermann_msgs::AckermannDriveStamped& covariance_ackermann_state);
+  void updateState(ackermann_msgs::AckermannDrive& measured_ackermann_state,
+                   ackermann_msgs::AckermannDrive& covariance_ackermann_state);
 
   /*!
    * Reads the buttons and switches wired in the own vehicle, that affects
@@ -172,7 +172,7 @@ public:
   /*!
    * Returns the desired state for debugging
    */
-  void getDesiredState(ackermann_msgs::AckermannDriveStamped& desired_ackermann_state_echo);
+  void getDesiredState(ackermann_msgs::AckermannDrive& desired_ackermann_state_echo);
 
   /*!
    * Maps variables in the ROS messages to the inner PID gains variables

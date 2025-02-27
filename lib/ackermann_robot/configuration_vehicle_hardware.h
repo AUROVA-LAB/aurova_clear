@@ -10,7 +10,7 @@
 #define HEADERS_CONFIGURATION_VEHICLE_HARDWARE_H_
 
 //------------SAFETY------------//
-const int MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS = 500;
+const int MAX_TIME_BETWEEN_CB_ACTIVATIONS_MILLIS = 550;
 
 //------------VEHICLE-----------//
 const float WHEELBASE_METERS = 1.05;
