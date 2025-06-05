@@ -90,8 +90,8 @@ ros::NodeHandle nh;     // The ros node implements the high level interface
 ////////////////////////
 // Inputs
 int verbose_level = DEBUG_VERBOSE_LEVEL;  // Variable to set the amount of debugging information that is sent trough the ROS interface
-float max_recommended_forward_speed  = 0.0; // Variable to store the maximum forward speed recommended by the reactive systems
-float max_recommended_backward_speed = 0.0; // Variable to store the maximum backward speed recommended by the reactive systems
+float max_recommended_forward_speed  = 1000.0; // Variable to store the maximum forward speed recommended by the reactive systems
+float max_recommended_backward_speed = 1000.0; // Variable to store the maximum backward speed recommended by the reactive systems
 
 // Messages to store input topics data, there is no need of initialising them
 // because they are only used after the callback executions.
@@ -134,20 +134,20 @@ void cb_desiredVerboseLevel(const std_msgs::Int16& desired_verbose_level_msg)
 /*! \brief Callback to store the maximum forward recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-// void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forward_speed_msg)
-// {
-//   max_recommended_forward_speed = max_recommended_forward_speed_msg.data;
-//   reactive_watchdog = 0;
-// }
+void cb_maxForwardRecommendedSpeed(const std_msgs::Float32& max_recommended_forward_speed_msg)
+{
+  max_recommended_forward_speed = max_recommended_forward_speed_msg.data;
+  // reactive_watchdog = 0;
+}
 
 /*! \brief Callback to store the maximum recommended speed, it sets a flag to indicate that the safety system is alive
  *  and resets the watchdog
  */
-// void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_backward_speed_msg)
-// {
-//   max_recommended_backward_speed = max_recommended_backward_speed_msg.data;
-//   reactive_watchdog = 0;
-// }
+void cb_maxBackwardRecommendedSpeed(const std_msgs::Float32& max_recommended_backward_speed_msg)
+{
+  max_recommended_backward_speed = max_recommended_backward_speed_msg.data;
+  // reactive_watchdog = 0;
+}
 
 /*! \brief CallBack to read the desired ackermann state coming from the on-board PC
  *
@@ -221,14 +221,14 @@ ros::Subscriber<std_msgs::Int16> verbose_level_subscriber("desired_verbose_level
 /*!
  * Subscriber that receives the maximum forward speed for the platform, it comes from the safety system
  */
-// ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
-//     "/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
+ros::Subscriber<std_msgs::Float32> max_recommended_forward_speed_subscriber(
+    "/forward_recommended_velocity", &cb_maxForwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the maximum backward speed for the platform, it comes from the safety system
  */
-// ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
-//     "/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
+ros::Subscriber<std_msgs::Float32> max_recommended_backward_speed_subscriber(
+    "/backward_recommended_velocity", &cb_maxBackwardRecommendedSpeed);
 
 /*!
  * Subscriber that receives the setpoint for the PID controllers (steering in deg and speed in m/s)
@@ -403,8 +403,8 @@ void setup()
   nh.advertise(estimated_ackermann_publisher);
   nh.advertise(variance_ackermann_publisher);
 
-  // nh.subscribe(max_recommended_forward_speed_subscriber);
-  // nh.subscribe(max_recommended_backward_speed_subscriber);
+  nh.subscribe(max_recommended_forward_speed_subscriber);
+  nh.subscribe(max_recommended_backward_speed_subscriber);
 }
 
 /*!
